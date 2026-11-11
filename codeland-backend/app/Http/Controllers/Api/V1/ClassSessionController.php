@@ -1,0 +1,140 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\StoreClassSessionRequest;
+use App\Http\Requests\Api\V1\UpdateClassSessionRequest;
+use App\Models\ClassSession;
+use App\Models\CourseLesson;
+use App\Models\Group;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
+
+class ClassSessionController extends Controller
+{
+    public function index(Group $group): JsonResponse
+    {
+        $sessions = $group->sessions()
+            ->with('courseLesson')
+            ->orderBy('starts_at')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $sessions,
+        ]);
+    }
+
+    public function show(
+        Group $group,
+        ClassSession $classSession
+    ): JsonResponse {
+        abort_unless($classSession->group_id === $group->id, 404);
+
+        return response()->json([
+            'success' => true,
+            'data' => $classSession->load('courseLesson', 'attendances'),
+        ]);
+    }
+
+    public function store(
+        StoreClassSessionRequest $request,
+        Group $group
+    ): JsonResponse {
+        $data = $request->validated();
+
+        if (isset($data['course_lesson_id'])) {
+            $lesson = CourseLesson::findOrFail($data['course_lesson_id']);
+
+            abort_unless(
+                $lesson->courseLevel->course_id === $group->courseLevel->course_id,
+                422,
+                'The selected lesson does not belong to this group course.'
+            );
+        }
+
+        $hasConflict = ClassSession::where('group_id', $group->id)
+            ->where('status', 'scheduled')
+            ->where('starts_at', '<', $data['ends_at'])
+            ->where('ends_at', '>', $data['starts_at'])
+            ->exists();
+
+        if ($hasConflict) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The group already has a scheduled session during this time.',
+            ], 422);
+        }
+
+        $session = $group->sessions()->create($data);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Class session created successfully.',
+            'data' => $session->load('courseLesson'),
+        ], 201);
+    }
+
+    public function update(
+        UpdateClassSessionRequest $request,
+        Group $group,
+        ClassSession $classSession
+    ): JsonResponse {
+        abort_unless($classSession->group_id === $group->id, 404);
+
+        $data = $request->validated();
+
+        if (isset($data['course_lesson_id'])) {
+            $lesson = CourseLesson::findOrFail($data['course_lesson_id']);
+
+            abort_unless(
+                $lesson->courseLevel->course_id === $group->courseLevel->course_id,
+                422,
+                'The selected lesson does not belong to this group course.'
+            );
+        }
+
+        $startsAt = $data['starts_at'] ?? $classSession->starts_at;
+        $endsAt = $data['ends_at'] ?? $classSession->ends_at;
+        $status = $data['status'] ?? $classSession->status;
+
+        if ($status === 'scheduled') {
+            $hasConflict = ClassSession::where('group_id', $group->id)
+                ->where('status', 'scheduled')
+                ->where('id', '!=', $classSession->id)
+                ->where('starts_at', '<', $endsAt)
+                ->where('ends_at', '>', $startsAt)
+                ->exists();
+
+            if ($hasConflict) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The group already has a scheduled session during this time.',
+                ], 422);
+            }
+        }
+
+        $classSession->update($data);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Class session updated successfully.',
+            'data' => $classSession->fresh()->load('courseLesson'),
+        ]);
+    }
+
+    public function destroy(
+        Group $group,
+        ClassSession $classSession
+    ): JsonResponse {
+        abort_unless($classSession->group_id === $group->id, 404);
+
+        $classSession->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Class session deleted successfully.',
+        ]);
+    }
+}
