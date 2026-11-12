@@ -90,6 +90,12 @@ class AttendanceService
         int $checkNumber,
         User $markedBy
     ): void {
+        if ($checkNumber < 1 || $checkNumber > 3) {
+            throw new \InvalidArgumentException(
+                'Check number must be between 1 and 3.'
+            );
+        }
+
         DB::transaction(function () use ($session, $students, $checkNumber, $markedBy) {
             $activeStudentIds = $session->group
                 ->enrollments()
@@ -99,6 +105,15 @@ class AttendanceService
                 ->all();
 
             foreach ($students as $studentData) {
+                if (
+                    !isset($studentData['student_id']) ||
+                    !array_key_exists('is_present', $studentData)
+                ) {
+                    throw new \InvalidArgumentException(
+                        'Each student must have a student ID and attendance status.'
+                    );
+                }
+
                 $studentId = (int) $studentData['student_id'];
 
                 if (!in_array($studentId, $activeStudentIds, true)) {
@@ -123,4 +138,5 @@ class AttendanceService
             }
         });
     }
+
 }

@@ -10,34 +10,24 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends ApiController
 {
-
     public function login(LoginRequest $request): JsonResponse
     {
         $data = $request->validated();
+
+        $type = $data['type'];
         $identifier = $data['identifier'];
+
+        $identifierColumn = match ($type) {
+            'admin', 'instructor' => 'email',
+            'parent' => 'phone',
+            'student' => 'username',
+        };
 
         $user = User::query()
             ->with('roles:id,name,slug')
-            ->where(function ($query) use ($identifier) {
-                $query->where(function ($q) use ($identifier) {
-                    $q->where('email', $identifier)
-                        ->whereHas('roles', function ($roleQuery) {
-                            $roleQuery->whereIn('slug', [
-                                'admin',
-                                'instructor',
-                            ]);
-                        });
-                })->orWhere(function ($q) use ($identifier) {
-                    $q->where('phone', $identifier)
-                        ->whereHas('roles', function ($roleQuery) {
-                            $roleQuery->where('slug', 'parent');
-                        });
-                })->orWhere(function ($q) use ($identifier) {
-                    $q->where('username', $identifier)
-                        ->whereHas('roles', function ($roleQuery) {
-                            $roleQuery->where('slug', 'student');
-                        });
-                });
+            ->where($identifierColumn, $identifier)
+            ->whereHas('roles', function ($query) use ($type) {
+                $query->where('slug', $type);
             })
             ->first();
 
@@ -60,9 +50,10 @@ class AuthController extends ApiController
         $user->tokens()->delete();
 
         $token = $user->createToken(
-            'abqareno-web',
+            'codeland-web',
             ['*']
         )->plainTextToken;
+
         return $this->success(
             'تم تسجيل الدخول بنجاح.',
             [
@@ -92,7 +83,6 @@ class AuthController extends ApiController
         );
     }
 
-
     private function userData(User $user): array
     {
         return [
@@ -108,5 +98,4 @@ class AuthController extends ApiController
             ])->values(),
         ];
     }
-
 }

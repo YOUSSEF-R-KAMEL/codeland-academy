@@ -17,6 +17,8 @@ class AttendanceController extends ApiController
 
     public function index(ClassSession $classSession): JsonResponse
     {
+        $this->authorizeSessionAccess($classSession, request());
+
         $roster = $this->attendanceService->getSessionRoster($classSession);
 
         return $this->success(
@@ -33,6 +35,8 @@ class AttendanceController extends ApiController
         StoreAttendanceRequest $request,
         ClassSession $classSession
     ): JsonResponse {
+        $this->authorizeSessionAccess($classSession, $request);
+
         try {
             $this->attendanceService->recordAttendance(
                 $classSession,
@@ -57,7 +61,6 @@ class AttendanceController extends ApiController
         );
     }
 
-
     private function authorizeSessionAccess(
         ClassSession $classSession,
         Request $request
@@ -77,5 +80,4 @@ class AttendanceController extends ApiController
             'You are not assigned to this group.'
         );
     }
-
 }

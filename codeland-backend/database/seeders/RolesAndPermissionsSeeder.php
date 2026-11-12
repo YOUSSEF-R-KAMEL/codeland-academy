@@ -13,10 +13,12 @@ class RolesAndPermissionsSeeder extends Seeder
     {
         DB::transaction(function () {
             $permissions = [
+                'submit_projects' => 'Submit Projects',
                 'manage_users' => 'Manage Users',
                 'manage_roles' => 'Manage Roles',
                 'manage_courses' => 'Manage Courses',
                 'manage_groups' => 'Manage Groups',
+                'manage_sessions' => 'Manage Class Sessions',
                 'manage_lessons' => 'Manage Lessons',
                 'manage_assignments' => 'Manage Assignments',
                 'review_submissions' => 'Review Submissions',
@@ -59,6 +61,8 @@ class RolesAndPermissionsSeeder extends Seeder
                         'manage_assignments',
                         'review_submissions',
                         'manage_attendance',
+                        'manage_sessions',
+                        'manage_projects',
                         'view_progress',
                         'ask_questions',
                     ],
@@ -69,7 +73,7 @@ class RolesAndPermissionsSeeder extends Seeder
                     'permissions' => [
                         'view_lessons',
                         'submit_assignments',
-                        'manage_projects',
+                        'submit_projects',
                         'view_progress',
                         'ask_questions',
                         'view_payments',

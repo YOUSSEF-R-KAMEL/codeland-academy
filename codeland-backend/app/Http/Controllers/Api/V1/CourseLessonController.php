@@ -12,7 +12,23 @@ class CourseLessonController extends ApiController
 {
     public function index(CourseLevel $level)
     {
-        $lessons = $level->lessons()
+        $user = request()->user();
+
+        $query = $level->lessons();
+
+        if ($user->hasRole('student')) {
+            $isEnrolled = $level->groups()
+                ->whereHas('enrollments', function ($query) use ($user) {
+                    $query->where('student_id', $user->id);
+                })
+                ->exists();
+
+            abort_unless($isEnrolled, 403);
+
+            $query->where('is_published', true);
+        }
+
+        $lessons = $query
             ->orderBy('sort_order')
             ->orderBy('lesson_number')
             ->get();
@@ -29,6 +45,20 @@ class CourseLessonController extends ApiController
     {
         abort_unless($lesson->course_level_id === $level->id, 404);
 
+        $user = request()->user();
+
+        if ($user->hasRole('student')) {
+            $isEnrolled = $level->groups()
+                ->whereHas('enrollments', function ($query) use ($user) {
+                    $query->where('student_id', $user->id);
+                })
+                ->exists();
+
+            abort_unless($isEnrolled, 403);
+
+            abort_unless($lesson->is_published, 404);
+        }
+
         return $this->success(
             'تم جلب تفاصيل المحاضرة بنجاح.',
             [
@@ -41,6 +71,8 @@ class CourseLessonController extends ApiController
         StoreCourseLessonRequest $request,
         CourseLevel $level
     ) {
+        $this->authorizeLessonManagement($level);
+
         $data = $request->validated();
 
         validator($data, [
@@ -71,6 +103,8 @@ class CourseLessonController extends ApiController
         CourseLesson $lesson
     ) {
         abort_unless($lesson->course_level_id === $level->id, 404);
+
+        $this->authorizeLessonManagement($level);
 
         $data = $request->validated();
 
@@ -113,10 +147,27 @@ class CourseLessonController extends ApiController
     {
         abort_unless($lesson->course_level_id === $level->id, 404);
 
+        $this->authorizeLessonManagement($level);
+
         $lesson->delete();
 
         return $this->success(
             'تم حذف المحاضرة بنجاح.'
         );
+    }
+
+    private function authorizeLessonManagement(CourseLevel $level): void
+    {
+        $user = request()->user();
+
+        if ($user->hasRole('admin')) {
+            return;
+        }
+
+        $hasAssignedGroup = $user->instructorGroups()
+            ->where('course_level_id', $level->id)
+            ->exists();
+
+        abort_unless($hasAssignedGroup, 403);
     }
 }

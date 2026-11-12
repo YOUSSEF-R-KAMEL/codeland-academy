@@ -69,10 +69,8 @@ class PaymentService
                 }
 
                 $installmentPaidInCents = (int) round(
-                    (float) Payment::where(
-                        'payment_installment_id',
-                        $installment->id
-                    )
+                    (float) Payment::where('invoice_id', $lockedInvoice->id)
+                        ->where('payment_installment_id', $installment->id)
                         ->where('status', 'confirmed')
                         ->sum('amount') * 100
                 );

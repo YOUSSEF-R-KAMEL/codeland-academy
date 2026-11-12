@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Requests\Api\V1\StoreLessonResourceRequest;
 use App\Http\Requests\Api\V1\UpdateLessonResourceRequest;
 use App\Models\CourseLesson;
+use App\Models\Group;
 use App\Models\LessonResource;
 
 class LessonResourceController extends ApiController
 {
     public function index(CourseLesson $lesson)
     {
+        $this->authorizeLessonAccess($lesson);
+
         $resources = $lesson->resources()
             ->orderBy('sort_order')
             ->get();
@@ -32,6 +35,8 @@ class LessonResourceController extends ApiController
             404
         );
 
+        $this->authorizeLessonAccess($lesson);
+
         return $this->success(
             'تم جلب تفاصيل المورد بنجاح.',
             [
@@ -44,6 +49,8 @@ class LessonResourceController extends ApiController
         StoreLessonResourceRequest $request,
         CourseLesson $lesson
     ) {
+        $this->authorizeLessonManagement($lesson);
+
         $resource = $lesson->resources()->create(
             $request->validated()
         );
@@ -67,6 +74,8 @@ class LessonResourceController extends ApiController
             404
         );
 
+        $this->authorizeLessonManagement($lesson);
+
         $resource->update($request->validated());
 
         return $this->success(
@@ -86,10 +95,63 @@ class LessonResourceController extends ApiController
             404
         );
 
+        $this->authorizeLessonManagement($lesson);
+
         $resource->delete();
 
         return $this->success(
             'تم حذف المورد بنجاح.'
         );
+    }
+
+    private function authorizeLessonAccess(CourseLesson $lesson): void
+    {
+        $user = request()->user();
+
+        if ($user->hasRole('admin')) {
+            return;
+        }
+
+        if ($user->hasRole('student')) {
+            abort_unless($lesson->is_published, 404);
+
+            $isEnrolled = Group::query()
+                ->where('course_level_id', $lesson->course_level_id)
+                ->whereHas('enrollments', function ($query) use ($user) {
+                    $query->where('student_id', $user->id);
+                })
+                ->exists();
+
+            abort_unless($isEnrolled, 403);
+
+            return;
+        }
+
+        if ($user->hasRole('instructor')) {
+            $hasAssignedGroup = $user->instructorGroups()
+                ->where('course_level_id', $lesson->course_level_id)
+                ->exists();
+
+            abort_unless($hasAssignedGroup, 403);
+
+            return;
+        }
+
+        abort(403);
+    }
+
+    private function authorizeLessonManagement(CourseLesson $lesson): void
+    {
+        $user = request()->user();
+
+        if ($user->hasRole('admin')) {
+            return;
+        }
+
+        $hasAssignedGroup = $user->instructorGroups()
+            ->where('course_level_id', $lesson->course_level_id)
+            ->exists();
+
+        abort_unless($hasAssignedGroup, 403);
     }
 }

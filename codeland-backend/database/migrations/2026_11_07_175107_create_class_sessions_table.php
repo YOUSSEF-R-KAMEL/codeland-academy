@@ -34,6 +34,7 @@ return new class extends Migration {
             $table->softDeletes();
 
             $table->index(['group_id', 'starts_at']);
+            $table->index(['group_id', 'status', 'starts_at']);
             $table->index(['status', 'starts_at']);
         });
     }

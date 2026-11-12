@@ -9,7 +9,25 @@ class StoreClassSessionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        if (!$user) {
+            return false;
+        }
+
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        $group = $this->route('group');
+
+        if (!$user->hasRole('instructor') || !$group) {
+            return false;
+        }
+
+        return $group->instructors()
+            ->where('users.id', $user->id)
+            ->exists();
     }
 
     public function rules(): array

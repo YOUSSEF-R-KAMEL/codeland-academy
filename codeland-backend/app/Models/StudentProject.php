@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Enums\StudentProjectStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StudentProject extends Model
 {
     protected $fillable = [
+        'project_id',
         'student_id',
         'course_level_id',
         'group_id',
@@ -22,9 +24,15 @@ class StudentProject extends Model
         'is_featured',
     ];
 
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
+    }
+
     protected function casts(): array
     {
         return [
+            'status' => StudentProjectStatus::class,
             'score' => 'decimal:2',
             'reviewed_at' => 'datetime',
             'is_featured' => 'boolean',

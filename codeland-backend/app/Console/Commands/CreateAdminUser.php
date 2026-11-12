@@ -12,7 +12,7 @@ class CreateAdminUser extends Command
 {
     protected $signature = 'academy:create-admin';
 
-    protected $description = 'Create an administrator account for Abqareno Academy';
+    protected $description = 'Create an administrator account for Codeland Academy';
 
     public function handle(): int
     {

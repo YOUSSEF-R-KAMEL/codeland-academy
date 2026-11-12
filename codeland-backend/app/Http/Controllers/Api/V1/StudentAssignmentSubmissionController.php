@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\StudentProjectStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\StoreAssignmentSubmissionRequest;
 use App\Models\Assignment;
@@ -50,7 +51,7 @@ class StudentAssignmentSubmissionController extends Controller
                 'submission_url' => $request->validated('submission_url'),
                 'submission_notes' => $request->validated('submission_notes'),
                 'submitted_at' => now(),
-                'status' => 'submitted',
+                'status' => StudentProjectStatus::SUBMITTED,
                 'score' => null,
                 'instructor_feedback' => null,
                 'reviewed_by' => null,

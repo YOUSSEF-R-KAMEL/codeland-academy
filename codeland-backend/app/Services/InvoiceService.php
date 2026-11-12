@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Enrollment;
 use App\Models\Invoice;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class InvoiceService
@@ -14,14 +15,26 @@ class InvoiceService
         string $paymentPlan
     ): Invoice {
         return DB::transaction(function () use ($enrollment, $paymentPlan) {
+            $enrollment->loadMissing('group.courseLevel');
+
             $level = $enrollment->group->courseLevel;
 
             if ($paymentPlan === 'full') {
+                if ($level->full_price === null || $level->full_price <= 0) {
+                    throw ValidationException::withMessages([
+                        'payment_plan' => [
+                            'Full payment is not available for this course level.',
+                        ],
+                    ]);
+                }
+
                 $totalAmount = $level->full_price;
                 $installmentCount = 0;
             } elseif ($paymentPlan === 'monthly') {
                 if (
                     $level->monthly_price === null ||
+                    $level->monthly_price <= 0 ||
+                    $level->duration_weeks <= 0 ||
                     $level->duration_weeks % 4 !== 0
                 ) {
                     throw ValidationException::withMessages([
@@ -35,7 +48,9 @@ class InvoiceService
                 $totalAmount = $level->monthly_price * $installmentCount;
             } else {
                 throw ValidationException::withMessages([
-                    'payment_plan' => ['Invalid payment plan.'],
+                    'payment_plan' => [
+                        'Invalid payment plan.',
+                    ],
                 ]);
             }
 
@@ -45,7 +60,7 @@ class InvoiceService
 
             $invoice = Invoice::create([
                 'enrollment_id' => $enrollment->id,
-                'invoice_number' => 'INV-' . $enrollment->id . '-' . now()->format('YmdHis'),
+                'invoice_number' => 'INV-' . $enrollment->id . '-' . Str::uuid(),
                 'total_amount' => $totalAmount,
                 'payment_plan' => $paymentPlan,
                 'paid_amount' => 0,

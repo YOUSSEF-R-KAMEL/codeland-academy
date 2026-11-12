@@ -9,7 +9,7 @@ class HealthController extends ApiController
     public function __invoke(): JsonResponse
     {
         return $this->success(
-            'Abqareno Academy API is running',
+            'Codeland Academy API is running',
             [
                 'status' => 'healthy',
                 'version' => '1.0.0',

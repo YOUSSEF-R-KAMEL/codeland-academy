@@ -26,6 +26,9 @@ class Invoice extends Model
 
     protected $appends = [
         'remaining_amount',
+        'financial_summary',
+        'is_overdue',
+        'overdue_days',
     ];
 
     protected function casts(): array
@@ -61,5 +64,48 @@ class Invoice extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function getFinancialSummaryAttribute(): array
+    {
+        $installments = $this->installments;
+
+        return [
+            'total_amount' => $this->total_amount,
+            'paid_amount' => $this->paid_amount,
+            'remaining_amount' => $this->remaining_amount,
+            'installments_count' => $installments->count(),
+            'paid_installments_count' => $installments
+                ->where('status', 'paid')
+                ->count(),
+            'pending_installments_count' => $installments
+                ->where('status', '!=', 'paid')
+                ->count(),
+            'overdue_installments_count' => $installments
+                ->filter(fn($installment) => $installment->is_overdue)
+                ->count(),
+
+            'partially_paid_installments_count' => $installments
+                ->where('status', 'partially_paid')
+                ->count(),
+        ];
+    }
+
+    public function getIsOverdueAttribute(): bool
+    {
+        return $this->due_at !== null
+            && $this->due_at->lt(now()->startOfDay())
+            && (float) $this->remaining_amount > 0;
+    }
+
+    public function getOverdueDaysAttribute(): int
+    {
+        if (!$this->is_overdue) {
+            return 0;
+        }
+
+        return (int) $this->due_at->startOfDay()->diffInDays(
+            now()->startOfDay()
+        );
     }
 }

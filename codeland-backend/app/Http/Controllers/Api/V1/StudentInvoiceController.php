@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
-use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -31,7 +30,7 @@ class StudentInvoiceController extends Controller
             ->with([
                 'enrollment.student:id,name',
                 'enrollment.group.courseLevel.course:id,title',
-                'installments',
+                'installments.payments',
             ])
             ->orderByDesc('issued_at')
             ->paginate(20);
@@ -46,10 +45,10 @@ class StudentInvoiceController extends Controller
     {
         $user = $request->user();
 
-        $studentId = $invoice->enrollment()->value('student_id');
+        $studentId = (int) $invoice->enrollment()->value('student_id');
 
         $hasAccess = $user->hasRole('student')
-            && $user->id === $studentId;
+            && (int) $user->id === $studentId;
 
         if ($user->hasRole('parent')) {
             $hasAccess = $user->children()
@@ -64,6 +63,7 @@ class StudentInvoiceController extends Controller
             'enrollment.group.courseLevel.course:id,title',
             'installments.payments',
             'payments.installment',
+            'payments.recordedBy:id,name',
         ]);
 
         return response()->json([
