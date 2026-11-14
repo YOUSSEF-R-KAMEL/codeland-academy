@@ -16,6 +16,10 @@ class StudentAssignmentSubmissionController extends Controller
         StoreAssignmentSubmissionRequest $request,
         Assignment $assignment
     ): JsonResponse {
+        $student = $request->user();
+
+        abort_unless($student->hasRole('student'), 403);
+
         abort_unless(
             $assignment->is_published
             && $assignment->published_at
@@ -23,15 +27,13 @@ class StudentAssignmentSubmissionController extends Controller
             404
         );
 
-        $student = $request->user();
-
         $hasEnrollment = Enrollment::query()
             ->where('student_id', $student->id)
             ->where('status', 'active')
             ->whereHas('group', function ($query) use ($assignment) {
                 $query->where(
-                    'course_level_id',
-                    $assignment->courseLesson->course_level_id
+                    'course_id',
+                    $assignment->courseLesson->course_id
                 );
             })
             ->exists();
@@ -39,7 +41,7 @@ class StudentAssignmentSubmissionController extends Controller
         abort_unless(
             $hasEnrollment,
             403,
-            'You are not enrolled in this assignment level.'
+            'You are not enrolled in this course.'
         );
 
         $submission = AssignmentSubmission::updateOrCreate(

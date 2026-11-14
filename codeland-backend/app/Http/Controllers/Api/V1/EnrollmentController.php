@@ -244,8 +244,8 @@ class EnrollmentController extends Controller
                 return ['error' => 'target_not_found'];
             }
 
-            if ($sourceGroup->course_level_id !== $targetGroup->course_level_id) {
-                return ['error' => 'different_course_level'];
+            if ($sourceGroup->course_id !== $targetGroup->course_id) {
+                return ['error' => 'different_course'];
             }
 
             $currentEnrollment = Enrollment::whereKey($enrollment->id)
@@ -313,8 +313,8 @@ class EnrollmentController extends Controller
         if (isset($result['error'])) {
             $messages = [
                 'target_not_found' => ['Target group not found.', 404],
-                'different_course_level' => [
-                    'Students can only be transferred between groups of the same course level.',
+                'different_course' => [
+                    'Students can only be transferred between groups of the same course.',
                     422,
                 ],
                 'invalid_status' => [

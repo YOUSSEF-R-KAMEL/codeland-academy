@@ -13,7 +13,7 @@ class Group extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'course_level_id',
+        'course_id',
         'name',
         'code',
         'capacity',
@@ -32,9 +32,9 @@ class Group extends Model
         ];
     }
 
-    public function courseLevel(): BelongsTo
+    public function course(): BelongsTo
     {
-        return $this->belongsTo(CourseLevel::class);
+        return $this->belongsTo(Course::class);
     }
 
     public function enrollments(): HasMany

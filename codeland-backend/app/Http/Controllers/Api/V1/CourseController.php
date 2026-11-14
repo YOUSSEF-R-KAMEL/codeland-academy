@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Models\Course;
 use App\Http\Requests\Api\V1\StoreCourseRequest;
 use App\Http\Requests\Api\V1\UpdateCourseRequest;
+use App\Models\Course;
+
 class CourseController extends ApiController
 {
     public function index()
@@ -19,6 +20,12 @@ class CourseController extends ApiController
                 'slug',
                 'description',
                 'thumbnail_url',
+                'duration_weeks',
+                'sessions_per_week',
+                'session_duration_minutes',
+                'full_price',
+                'monthly_price',
+                'currency',
                 'sort_order',
             ]);
 
@@ -35,7 +42,19 @@ class CourseController extends ApiController
         $course = Course::query()
             ->where('slug', $slug)
             ->where('is_published', true)
-            ->firstOrFail();
+            ->firstOrFail([
+                'id',
+                'title',
+                'slug',
+                'description',
+                'thumbnail_url',
+                'duration_weeks',
+                'sessions_per_week',
+                'session_duration_minutes',
+                'full_price',
+                'monthly_price',
+                'currency',
+            ]);
 
         return $this->success(
             'تم جلب تفاصيل الكورس بنجاح.',
@@ -80,8 +99,4 @@ class CourseController extends ApiController
             'تم حذف الكورس بنجاح.'
         );
     }
-
-
-
-
 }

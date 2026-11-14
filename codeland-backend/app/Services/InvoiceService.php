@@ -15,37 +15,37 @@ class InvoiceService
         string $paymentPlan
     ): Invoice {
         return DB::transaction(function () use ($enrollment, $paymentPlan) {
-            $enrollment->loadMissing('group.courseLevel');
+            $enrollment->loadMissing('group.course');
 
-            $level = $enrollment->group->courseLevel;
+            $course = $enrollment->group->course;
 
             if ($paymentPlan === 'full') {
-                if ($level->full_price === null || $level->full_price <= 0) {
+                if ($course->full_price === null || $course->full_price <= 0) {
                     throw ValidationException::withMessages([
                         'payment_plan' => [
-                            'Full payment is not available for this course level.',
+                            'Full payment is not available for this course.',
                         ],
                     ]);
                 }
 
-                $totalAmount = $level->full_price;
+                $totalAmount = $course->full_price;
                 $installmentCount = 0;
             } elseif ($paymentPlan === 'monthly') {
                 if (
-                    $level->monthly_price === null ||
-                    $level->monthly_price <= 0 ||
-                    $level->duration_weeks <= 0 ||
-                    $level->duration_weeks % 4 !== 0
+                    $course->monthly_price === null ||
+                    $course->monthly_price <= 0 ||
+                    $course->duration_weeks <= 0 ||
+                    $course->duration_weeks % 4 !== 0
                 ) {
                     throw ValidationException::withMessages([
                         'payment_plan' => [
-                            'Monthly payment is not available for this course level.',
+                            'Monthly payment is not available for this course.',
                         ],
                     ]);
                 }
 
-                $installmentCount = intdiv($level->duration_weeks, 4);
-                $totalAmount = $level->monthly_price * $installmentCount;
+                $installmentCount = intdiv($course->duration_weeks, 4);
+                $totalAmount = $course->monthly_price * $installmentCount;
             } else {
                 throw ValidationException::withMessages([
                     'payment_plan' => [
@@ -64,7 +64,7 @@ class InvoiceService
                 'total_amount' => $totalAmount,
                 'payment_plan' => $paymentPlan,
                 'paid_amount' => 0,
-                'currency' => $level->currency,
+                'currency' => $course->currency,
                 'status' => 'unpaid',
                 'issued_at' => $issuedAt,
                 'due_at' => $paymentPlan === 'full'
@@ -76,7 +76,7 @@ class InvoiceService
                 for ($number = 1; $number <= $installmentCount; $number++) {
                     $invoice->installments()->create([
                         'installment_number' => $number,
-                        'amount' => $level->monthly_price,
+                        'amount' => $course->monthly_price,
                         'due_at' => $issuedAt->copy()->addMonths($number - 1),
                         'status' => 'pending',
                     ]);

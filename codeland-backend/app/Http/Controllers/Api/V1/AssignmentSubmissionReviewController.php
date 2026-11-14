@@ -29,15 +29,15 @@ class AssignmentSubmissionReviewController extends Controller
                 ->latest('submitted_at')
                 ->paginate(15);
         } else {
+            $courseId = $assignment->courseLesson->course_id;
+
             $authorizedStudentIds = Enrollment::query()
                 ->where('status', 'active')
-                ->whereHas('group', function ($query) use ($assignment, $user) {
-                    $query->where(
-                        'course_level_id',
-                        $assignment->courseLesson->course_level_id
-                    )->whereHas('instructors', function ($instructorQuery) use ($user) {
-                        $instructorQuery->where('users.id', $user->id);
-                    });
+                ->whereHas('group', function ($query) use ($courseId, $user) {
+                    $query->where('course_id', $courseId)
+                        ->whereHas('instructors', function ($instructorQuery) use ($user) {
+                            $instructorQuery->where('users.id', $user->id);
+                        });
                 })
                 ->pluck('student_id');
 
@@ -63,9 +63,9 @@ class AssignmentSubmissionReviewController extends Controller
         AssignmentSubmission $submission
     ): JsonResponse {
         $user = $request->user();
+
         abort_unless(
-            $submission->status === 'submitted' ||
-            $submission->status === 'reviewed',
+            in_array($submission->status, ['submitted', 'reviewed'], true),
             422,
             'This submission cannot be reviewed.'
         );
@@ -77,16 +77,16 @@ class AssignmentSubmissionReviewController extends Controller
         );
 
         if (!$user->hasRole('admin')) {
+            $courseId = $submission->assignment->courseLesson->course_id;
+
             $hasAccess = Enrollment::query()
                 ->where('student_id', $submission->student_id)
                 ->where('status', 'active')
-                ->whereHas('group', function ($query) use ($submission, $user) {
-                    $query->where(
-                        'course_level_id',
-                        $submission->assignment->courseLesson->course_level_id
-                    )->whereHas('instructors', function ($instructorQuery) use ($user) {
-                        $instructorQuery->where('users.id', $user->id);
-                    });
+                ->whereHas('group', function ($query) use ($courseId, $user) {
+                    $query->where('course_id', $courseId)
+                        ->whereHas('instructors', function ($instructorQuery) use ($user) {
+                            $instructorQuery->where('users.id', $user->id);
+                        });
                 })
                 ->exists();
 

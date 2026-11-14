@@ -25,7 +25,7 @@ class StoreGroupRequest extends FormRequest
                 'string',
                 'max:255',
                 'alpha_dash',
-                'unique:groups,code',
+                Rule::unique('groups', 'code'),
             ],
             'capacity' => [
                 'sometimes',

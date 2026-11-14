@@ -15,6 +15,12 @@ class Course extends Model
         'slug',
         'description',
         'thumbnail_url',
+        'duration_weeks',
+        'sessions_per_week',
+        'session_duration_minutes',
+        'monthly_price',
+        'full_price',
+        'currency',
         'is_published',
         'sort_order',
     ];
@@ -22,18 +28,28 @@ class Course extends Model
     protected function casts(): array
     {
         return [
+            'duration_weeks' => 'integer',
+            'sessions_per_week' => 'integer',
+            'session_duration_minutes' => 'integer',
+            'monthly_price' => 'decimal:2',
+            'full_price' => 'decimal:2',
             'is_published' => 'boolean',
             'sort_order' => 'integer',
         ];
     }
 
-    public function levels(): HasMany
+    public function lessons(): HasMany
     {
-        return $this->hasMany(CourseLevel::class);
+        return $this->hasMany(CourseLesson::class);
     }
 
     public function announcements(): HasMany
     {
         return $this->hasMany(Announcement::class);
+    }
+
+    public function groups(): HasMany
+    {
+        return $this->hasMany(Group::class);
     }
 }

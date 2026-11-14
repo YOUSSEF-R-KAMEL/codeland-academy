@@ -4,8 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 class Announcement extends Model
 {
     use SoftDeletes;
@@ -16,7 +17,6 @@ class Announcement extends Model
         'content',
         'target_type',
         'course_id',
-        'course_level_id',
         'group_id',
         'student_id',
         'is_published',
@@ -41,11 +41,6 @@ class Announcement extends Model
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
-    }
-
-    public function courseLevel(): BelongsTo
-    {
-        return $this->belongsTo(CourseLevel::class);
     }
 
     public function group(): BelongsTo

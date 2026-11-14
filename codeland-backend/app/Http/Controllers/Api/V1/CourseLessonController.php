@@ -4,27 +4,21 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Requests\Api\V1\StoreCourseLessonRequest;
 use App\Http\Requests\Api\V1\UpdateCourseLessonRequest;
-use App\Models\CourseLevel;
+use App\Models\Course;
 use App\Models\CourseLesson;
 use Illuminate\Validation\Rule;
 
 class CourseLessonController extends ApiController
 {
-    public function index(CourseLevel $level)
+    public function index(Course $course)
     {
         $user = request()->user();
 
-        $query = $level->lessons();
+        $this->authorizeLessonReading($course);
+
+        $query = $course->lessons();
 
         if ($user->hasRole('student')) {
-            $isEnrolled = $level->groups()
-                ->whereHas('enrollments', function ($query) use ($user) {
-                    $query->where('student_id', $user->id);
-                })
-                ->exists();
-
-            abort_unless($isEnrolled, 403);
-
             $query->where('is_published', true);
         }
 
@@ -34,28 +28,22 @@ class CourseLessonController extends ApiController
             ->get();
 
         return $this->success(
-            'تم جلب محاضرات المستوى بنجاح.',
+            'تم جلب محاضرات الكورس بنجاح.',
             [
                 'lessons' => $lessons,
             ]
         );
     }
 
-    public function show(CourseLevel $level, CourseLesson $lesson)
+    public function show(Course $course, CourseLesson $lesson)
     {
-        abort_unless($lesson->course_level_id === $level->id, 404);
+        abort_unless($lesson->course_id === $course->id, 404);
 
         $user = request()->user();
 
+        $this->authorizeLessonReading($course);
+
         if ($user->hasRole('student')) {
-            $isEnrolled = $level->groups()
-                ->whereHas('enrollments', function ($query) use ($user) {
-                    $query->where('student_id', $user->id);
-                })
-                ->exists();
-
-            abort_unless($isEnrolled, 403);
-
             abort_unless($lesson->is_published, 404);
         }
 
@@ -69,16 +57,16 @@ class CourseLessonController extends ApiController
 
     public function store(
         StoreCourseLessonRequest $request,
-        CourseLevel $level
+        Course $course
     ) {
-        $this->authorizeLessonManagement($level);
+        $this->authorizeLessonManagement($course);
 
         $data = $request->validated();
 
         validator($data, [
             'lesson_number' => [
                 Rule::unique('course_lessons', 'lesson_number')
-                    ->where('course_level_id', $level->id),
+                    ->where('course_id', $course->id),
             ],
         ])->validate();
 
@@ -86,7 +74,7 @@ class CourseLessonController extends ApiController
             $data['published_at'] = now();
         }
 
-        $lesson = $level->lessons()->create($data);
+        $lesson = $course->lessons()->create($data);
 
         return $this->success(
             'تم إنشاء المحاضرة بنجاح.',
@@ -99,12 +87,12 @@ class CourseLessonController extends ApiController
 
     public function update(
         UpdateCourseLessonRequest $request,
-        CourseLevel $level,
+        Course $course,
         CourseLesson $lesson
     ) {
-        abort_unless($lesson->course_level_id === $level->id, 404);
+        abort_unless($lesson->course_id === $course->id, 404);
 
-        $this->authorizeLessonManagement($level);
+        $this->authorizeLessonManagement($course);
 
         $data = $request->validated();
 
@@ -112,7 +100,7 @@ class CourseLessonController extends ApiController
             validator($data, [
                 'lesson_number' => [
                     Rule::unique('course_lessons', 'lesson_number')
-                        ->where('course_level_id', $level->id)
+                        ->where('course_id', $course->id)
                         ->ignore($lesson->id),
                 ],
             ])->validate();
@@ -143,11 +131,11 @@ class CourseLessonController extends ApiController
         );
     }
 
-    public function destroy(CourseLevel $level, CourseLesson $lesson)
+    public function destroy(Course $course, CourseLesson $lesson)
     {
-        abort_unless($lesson->course_level_id === $level->id, 404);
+        abort_unless($lesson->course_id === $course->id, 404);
 
-        $this->authorizeLessonManagement($level);
+        $this->authorizeLessonManagement($course);
 
         $lesson->delete();
 
@@ -156,7 +144,42 @@ class CourseLessonController extends ApiController
         );
     }
 
-    private function authorizeLessonManagement(CourseLevel $level): void
+    private function authorizeLessonReading(Course $course): void
+    {
+        $user = request()->user();
+
+        if ($user->hasRole('admin')) {
+            return;
+        }
+
+        if ($user->hasRole('student')) {
+            $hasActiveEnrollment = $course->groups()
+                ->whereHas('enrollments', function ($query) use ($user) {
+                    $query
+                        ->where('student_id', $user->id)
+                        ->where('status', 'active');
+                })
+                ->exists();
+
+            abort_unless($hasActiveEnrollment, 403);
+
+            return;
+        }
+
+        if ($user->hasRole('instructor')) {
+            $hasAssignedGroup = $user->instructorGroups()
+                ->where('course_id', $course->id)
+                ->exists();
+
+            abort_unless($hasAssignedGroup, 403);
+
+            return;
+        }
+
+        abort(403);
+    }
+
+    private function authorizeLessonManagement(Course $course): void
     {
         $user = request()->user();
 
@@ -165,7 +188,7 @@ class CourseLessonController extends ApiController
         }
 
         $hasAssignedGroup = $user->instructorGroups()
-            ->where('course_level_id', $level->id)
+            ->where('course_id', $course->id)
             ->exists();
 
         abort_unless($hasAssignedGroup, 403);

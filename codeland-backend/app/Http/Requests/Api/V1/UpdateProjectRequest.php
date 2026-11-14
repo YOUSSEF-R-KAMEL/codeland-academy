@@ -16,17 +16,17 @@ class UpdateProjectRequest extends FormRequest
     {
         $project = $this->route('project');
 
-        $courseLevelId = $this->input(
-            'course_level_id',
-            $project?->course_level_id
+        $courseId = $this->input(
+            'course_id',
+            $project?->course_id
         );
 
         return [
-            'course_level_id' => [
+            'course_id' => [
                 'sometimes',
                 'required',
                 'integer',
-                'exists:course_levels,id',
+                'exists:courses,id',
             ],
 
             'group_id' => [
@@ -34,7 +34,7 @@ class UpdateProjectRequest extends FormRequest
                 'nullable',
                 'integer',
                 Rule::exists('groups', 'id')
-                    ->where('course_level_id', $courseLevelId),
+                    ->where('course_id', $courseId),
             ],
 
             'title' => [

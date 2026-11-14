@@ -45,11 +45,12 @@ class StudentProjectReviewController extends Controller
         $query = StudentProject::query()
             ->with([
                 'student:id,name',
-                'project:id,title,course_level_id,group_id',
-                'courseLevel',
+                'project:id,title,course_id,group_id',
+                'course:id,title',
                 'group',
                 'reviewer:id,name',
             ]);
+
 
         if ($user->hasRole('instructor') && !$user->hasRole('admin')) {
             $groupIds = $user->instructorGroups()
@@ -137,12 +138,13 @@ class StudentProjectReviewController extends Controller
             'message' => 'Project reviewed successfully.',
             'data' => $reviewedProject->fresh()->load([
                 'student:id,name',
-                'project:id,title',
-                'courseLevel',
+                'project:id,title,course_id',
+                'course:id,title',
                 'group',
                 'reviewer:id,name',
             ]),
         ]);
+
     }
 
     public function startReview(
@@ -187,14 +189,16 @@ class StudentProjectReviewController extends Controller
             return $submission;
         });
 
+
         return response()->json([
             'message' => 'Project moved to review successfully.',
             'data' => $updated->fresh()->load([
                 'student:id,name',
-                'project:id,title',
-                'courseLevel',
+                'project:id,title,course_id',
+                'course:id,title',
                 'group',
             ]),
         ]);
+
     }
 }

@@ -5,15 +5,15 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\StoreGroupRequest;
 use App\Http\Requests\Api\V1\UpdateGroupRequest;
-use App\Models\CourseLevel;
+use App\Models\Course;
 use App\Models\Group;
 use Illuminate\Http\JsonResponse;
 
 class GroupController extends Controller
 {
-    public function index(CourseLevel $level): JsonResponse
+    public function index(Course $course): JsonResponse
     {
-        $groups = Group::where('course_level_id', $level->id)
+        $groups = $course->groups()
             ->orderBy('start_date')
             ->orderBy('name')
             ->get();
@@ -24,9 +24,9 @@ class GroupController extends Controller
         ]);
     }
 
-    public function show(CourseLevel $level, Group $group): JsonResponse
+    public function show(Course $course, Group $group): JsonResponse
     {
-        abort_unless($group->course_level_id === $level->id, 404);
+        abort_unless($group->course_id === $course->id, 404);
 
         return response()->json([
             'success' => true,
@@ -36,17 +36,9 @@ class GroupController extends Controller
 
     public function store(
         StoreGroupRequest $request,
-        CourseLevel $level
+        Course $course
     ): JsonResponse {
-        $group = new Group();
-
-        $group->course_level_id = $level->id;
-
-        foreach ($request->validated() as $key => $value) {
-            $group->{$key} = $value;
-        }
-
-        $group->save();
+        $group = $course->groups()->create($request->validated());
 
         return response()->json([
             'success' => true,
@@ -57,29 +49,25 @@ class GroupController extends Controller
 
     public function update(
         UpdateGroupRequest $request,
-        CourseLevel $level,
+        Course $course,
         Group $group
     ): JsonResponse {
-        abort_unless($group->course_level_id === $level->id, 404);
+        abort_unless($group->course_id === $course->id, 404);
 
-        foreach ($request->validated() as $key => $value) {
-            $group->{$key} = $value;
-        }
-
-        $group->save();
+        $group->update($request->validated());
 
         return response()->json([
             'success' => true,
             'message' => 'Group updated successfully.',
-            'data' => $group,
+            'data' => $group->fresh(),
         ]);
     }
 
     public function destroy(
-        CourseLevel $level,
+        Course $course,
         Group $group
     ): JsonResponse {
-        abort_unless($group->course_level_id === $level->id, 404);
+        abort_unless($group->course_id === $course->id, 404);
 
         $group->delete();
 

@@ -19,20 +19,20 @@ class AssignmentController extends Controller
 
         $query = Assignment::query()
             ->with([
-                'courseLesson.courseLevel.course',
+                'courseLesson.course',
                 'creator',
             ])
             ->withCount('submissions');
 
         if (!$user->hasRole('admin')) {
-            $levelIds = Group::query()
+            $courseIds = Group::query()
                 ->whereHas('instructors', function ($query) use ($user) {
                     $query->where('users.id', $user->id);
                 })
-                ->pluck('course_level_id');
+                ->pluck('course_id');
 
-            $query->whereHas('courseLesson', function ($query) use ($levelIds) {
-                $query->whereIn('course_level_id', $levelIds);
+            $query->whereHas('courseLesson', function ($query) use ($courseIds) {
+                $query->whereIn('course_id', $courseIds);
             });
         }
 
@@ -48,7 +48,7 @@ class AssignmentController extends Controller
         $this->authorizeAssignmentAccess($request, $assignment);
 
         $assignment->load([
-            'courseLesson.courseLevel.course',
+            'courseLesson.course',
             'creator',
         ])->loadCount('submissions');
 
@@ -86,7 +86,7 @@ class AssignmentController extends Controller
         $assignment = Assignment::create($validated);
 
         $assignment->load([
-            'courseLesson.courseLevel.course',
+            'courseLesson.course',
             'creator',
         ]);
 
@@ -110,6 +110,17 @@ class AssignmentController extends Controller
             );
 
             $this->authorizeLessonAccess($request, $lesson);
+
+            $existingAssignment = Assignment::withTrashed()
+                ->where('course_lesson_id', $lesson->id)
+                ->where('id', '!=', $assignment->id)
+                ->exists();
+
+            if ($existingAssignment) {
+                return response()->json([
+                    'message' => 'An assignment already exists for this lesson.',
+                ], 409);
+            }
         }
 
         if (
@@ -123,7 +134,7 @@ class AssignmentController extends Controller
         $assignment->update($validated);
 
         $assignment->load([
-            'courseLesson.courseLevel.course',
+            'courseLesson.course',
             'creator',
         ]);
 
@@ -167,7 +178,7 @@ class AssignmentController extends Controller
         }
 
         $hasAccess = Group::query()
-            ->where('course_level_id', $lesson->course_level_id)
+            ->where('course_id', $lesson->course_id)
             ->whereHas('instructors', function ($query) use ($user) {
                 $query->where('users.id', $user->id);
             })

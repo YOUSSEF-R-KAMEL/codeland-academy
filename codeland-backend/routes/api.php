@@ -6,7 +6,6 @@ use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CourseController;
 use App\Http\Controllers\Api\V1\CourseLessonController;
-use App\Http\Controllers\Api\V1\CourseLevelController;
 use App\Http\Controllers\Api\V1\EnrollmentController;
 use App\Http\Controllers\Api\V1\GroupController;
 use App\Http\Controllers\Api\V1\GroupInstructorController;
@@ -17,19 +16,23 @@ use App\Http\Controllers\Api\V1\ClassSessionController;
 use App\Http\Controllers\Api\V1\AssignmentController;
 use App\Http\Controllers\Api\V1\AssignmentSubmissionReviewController;
 use App\Http\Controllers\Api\V1\FeedbackTemplateController;
-use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\StudentAssignmentController;
 use App\Http\Controllers\Api\V1\StudentAssignmentSubmissionController;
 use App\Http\Controllers\Api\V1\PaymentController;
-use App\Http\Controllers\Api\V1\ProjectController;
 use App\Http\Controllers\Api\V1\StudentInvoiceController;
 use App\Http\Controllers\Api\V1\StudentProjectController;
 use App\Http\Controllers\Api\V1\StudentProjectReviewController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\PaymentInstallmentController;
-
+use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Health & Authentication
+    |--------------------------------------------------------------------------
+    */
+
     Route::get('/health', HealthController::class)
         ->name('api.v1.health');
 
@@ -37,10 +40,28 @@ Route::prefix('v1')->group(function () {
         ->middleware('throttle:5,1')
         ->name('api.v1.auth.login');
 
+    Route::get('/courses', [CourseController::class, 'index'])
+        ->name('api.v1.courses.index');
+
+    Route::get('/courses/{slug}', [CourseController::class, 'show'])
+        ->name('api.v1.courses.show');
+
     Route::middleware([
         'auth:sanctum',
         'active',
     ])->group(function () {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Authentication
+        |--------------------------------------------------------------------------
+        */
+
+        Route::post('/auth/logout', [AuthController::class, 'logout'])
+            ->name('api.v1.auth.logout');
+
+        Route::get('/auth/me', [AuthController::class, 'me'])
+            ->name('api.v1.auth.me');
 
         /*
         |--------------------------------------------------------------------------
@@ -51,23 +72,24 @@ Route::prefix('v1')->group(function () {
         Route::prefix('student')
             ->middleware(['role:student'])
             ->group(function () {
+
                 Route::get('projects', [StudentProjectController::class, 'index'])
                     ->middleware('permission:submit_projects')
-                    ->name('student.projects.index');
+                    ->name('api.v1.student.projects.index');
 
                 Route::post(
                     'projects/{project}/submit',
                     [StudentProjectController::class, 'submit']
                 )
                     ->middleware('permission:submit_projects')
-                    ->name('student.projects.submit');
+                    ->name('api.v1.student.projects.submit');
 
                 Route::get(
                     'project-submissions',
                     [StudentProjectController::class, 'mySubmissions']
                 )
                     ->middleware('permission:submit_projects')
-                    ->name('student.projects.submissions');
+                    ->name('api.v1.student.projects.submissions');
             });
 
         /*
@@ -82,20 +104,21 @@ Route::prefix('v1')->group(function () {
                 'permission:review_submissions',
             ])
             ->group(function () {
+
                 Route::get(
                     'project-submissions',
                     [StudentProjectReviewController::class, 'index']
-                )->name('admin.project-submissions.index');
+                )->name('api.v1.admin.project-submissions.index');
 
                 Route::patch(
                     'project-submissions/{studentProject}/start-review',
                     [StudentProjectReviewController::class, 'startReview']
-                )->name('admin.project-submissions.start-review');
+                )->name('api.v1.admin.project-submissions.start-review');
 
                 Route::patch(
                     'project-submissions/{studentProject}/review',
                     [StudentProjectReviewController::class, 'review']
-                )->name('admin.project-submissions.review');
+                )->name('api.v1.admin.project-submissions.review');
             });
 
         /*
@@ -104,6 +127,20 @@ Route::prefix('v1')->group(function () {
         |--------------------------------------------------------------------------
         */
 
+        // Admin and Instructor: Read templates
+        Route::prefix('admin/feedback-templates')
+            ->middleware([
+                'role:admin,instructor',
+                'permission:manage_assignments',
+            ])
+            ->controller(FeedbackTemplateController::class)
+            ->group(function () {
+
+                Route::get('/', 'index')
+                    ->name('api.v1.admin.feedback-templates.index');
+            });
+
+        // Admin: Manage templates
         Route::prefix('admin/feedback-templates')
             ->middleware([
                 'role:admin',
@@ -111,8 +148,6 @@ Route::prefix('v1')->group(function () {
             ])
             ->controller(FeedbackTemplateController::class)
             ->group(function () {
-                Route::get('/', 'index')
-                    ->name('api.v1.admin.feedback-templates.index');
 
                 Route::post('/', 'store')
                     ->name('api.v1.admin.feedback-templates.store');
@@ -129,52 +164,6 @@ Route::prefix('v1')->group(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | Student Invoices
-        |--------------------------------------------------------------------------
-        */
-
-        Route::middleware([
-            'role:student',
-            'permission:view_payments',
-        ])->prefix('student/invoices')
-            ->name('api.v1.student.invoices.')
-            ->group(function () {
-                Route::get('/', [
-                    StudentInvoiceController::class,
-                    'index',
-                ])->name('index');
-
-                Route::get('/{invoice}', [
-                    StudentInvoiceController::class,
-                    'show',
-                ])->name('show');
-            });
-
-        /*
-        |--------------------------------------------------------------------------
-        | Parent Invoices
-        |--------------------------------------------------------------------------
-        */
-
-        Route::middleware([
-            'role:parent',
-            'permission:view_child_payments',
-        ])->prefix('parent/invoices')
-            ->name('api.v1.parent.invoices.')
-            ->group(function () {
-                Route::get('/', [
-                    StudentInvoiceController::class,
-                    'index',
-                ])->name('index');
-
-                Route::get('/{invoice}', [
-                    StudentInvoiceController::class,
-                    'show',
-                ])->name('show');
-            });
-
-        /*
-        |--------------------------------------------------------------------------
         | Admin Assignments
         |--------------------------------------------------------------------------
         */
@@ -185,6 +174,7 @@ Route::prefix('v1')->group(function () {
                 'permission:manage_assignments',
             ])
             ->group(function () {
+
                 Route::get('/', [AssignmentController::class, 'index'])
                     ->name('api.v1.admin.assignments.index');
 
@@ -210,6 +200,7 @@ Route::prefix('v1')->group(function () {
         Route::prefix('student/assignments')
             ->middleware('role:student')
             ->group(function () {
+
                 Route::get('/', [StudentAssignmentController::class, 'index'])
                     ->name('api.v1.student.assignments.index');
 
@@ -234,6 +225,7 @@ Route::prefix('v1')->group(function () {
                 'permission:review_submissions',
             ])
             ->group(function () {
+
                 Route::get(
                     '/',
                     [AssignmentSubmissionReviewController::class, 'index']
@@ -243,38 +235,52 @@ Route::prefix('v1')->group(function () {
         Route::patch(
             '/admin/assignment-submissions/{submission}/review',
             [AssignmentSubmissionReviewController::class, 'review']
-        )->middleware([
-                    'role:admin,instructor',
-                    'permission:review_submissions',
-                ])->name('api.v1.admin.assignment-submissions.review');
+        )
+            ->middleware([
+                'role:admin,instructor',
+                'permission:review_submissions',
+            ])
+            ->name('api.v1.admin.assignment-submissions.review');
 
         /*
         |--------------------------------------------------------------------------
-        | Admin Feedback Templates (Instructor Access)
+        | Student Invoices
         |--------------------------------------------------------------------------
         */
 
-        Route::prefix('admin/feedback-templates')
-            ->middleware([
-                'role:admin,instructor',
-                'permission:manage_assignments',
-            ])
+        Route::middleware([
+            'role:student',
+            'permission:view_payments',
+        ])->prefix('student/invoices')
+            ->name('api.v1.student.invoices.')
             ->group(function () {
-                Route::get('/', [FeedbackTemplateController::class, 'index'])
-                    ->name('api.v1.admin.feedback-templates.instructor-index');
+
+                Route::get('/', [StudentInvoiceController::class, 'index'])
+                    ->name('index');
+
+                Route::get('/{invoice}', [StudentInvoiceController::class, 'show'])
+                    ->name('show');
             });
 
         /*
         |--------------------------------------------------------------------------
-        | Authentication
+        | Parent Invoices
         |--------------------------------------------------------------------------
         */
 
-        Route::post('/auth/logout', [AuthController::class, 'logout'])
-            ->name('api.v1.auth.logout');
+        Route::middleware([
+            'role:parent',
+            'permission:view_child_payments',
+        ])->prefix('parent/invoices')
+            ->name('api.v1.parent.invoices.')
+            ->group(function () {
 
-        Route::get('/auth/me', [AuthController::class, 'me'])
-            ->name('api.v1.auth.me');
+                Route::get('/', [StudentInvoiceController::class, 'index'])
+                    ->name('index');
+
+                Route::get('/{invoice}', [StudentInvoiceController::class, 'show'])
+                    ->name('show');
+            });
 
         /*
         |--------------------------------------------------------------------------
@@ -283,6 +289,7 @@ Route::prefix('v1')->group(function () {
         */
 
         Route::middleware('role:admin,instructor,student')->group(function () {
+
             Route::get(
                 '/lessons/{lesson}/resources',
                 [LessonResourceController::class, 'index']
@@ -294,36 +301,15 @@ Route::prefix('v1')->group(function () {
             )->name('api.v1.lessons.resources.show');
 
             Route::get(
-                '/course-levels/{level}/lessons',
+                '/courses/{course}/lessons',
                 [CourseLessonController::class, 'index']
-            )->name('api.v1.course-levels.lessons.index');
+            )->name('api.v1.courses.lessons.index');
 
             Route::get(
-                '/course-levels/{level}/lessons/{lesson}',
+                '/courses/{course}/lessons/{lesson}',
                 [CourseLessonController::class, 'show']
-            )->name('api.v1.course-levels.lessons.show');
+            )->name('api.v1.courses.lessons.show');
         });
-        /*
-        |--------------------------------------------------------------------------
-        | Public Course Reading (Authenticated)
-        |--------------------------------------------------------------------------
-        */
-
-        Route::get('/courses', [CourseController::class, 'index'])
-            ->name('api.v1.courses.index');
-
-        Route::get('/courses/{slug}', [CourseController::class, 'show'])
-            ->name('api.v1.courses.show');
-
-        Route::get(
-            '/courses/{course}/levels',
-            [CourseLevelController::class, 'index']
-        )->name('api.v1.courses.levels.index');
-
-        Route::get(
-            '/courses/{course}/levels/{level}',
-            [CourseLevelController::class, 'show']
-        )->name('api.v1.courses.levels.show');
 
         /*
         |--------------------------------------------------------------------------
@@ -335,6 +321,7 @@ Route::prefix('v1')->group(function () {
             'role:admin,instructor',
             'permission:manage_attendance',
         ])->group(function () {
+
             Route::get(
                 '/class-sessions/{classSession}/attendance',
                 [AttendanceController::class, 'index']
@@ -345,6 +332,7 @@ Route::prefix('v1')->group(function () {
                 [AttendanceController::class, 'store']
             );
         });
+
         /*
         |--------------------------------------------------------------------------
         | User Management
@@ -355,6 +343,7 @@ Route::prefix('v1')->group(function () {
             'role:admin',
             'permission:manage_users',
         ])->prefix('admin')->group(function () {
+
             Route::post('/users', [UserController::class, 'store'])
                 ->name('api.v1.admin.users.store');
 
@@ -406,6 +395,7 @@ Route::prefix('v1')->group(function () {
         ])->prefix('admin/courses')
             ->name('api.v1.admin.courses.')
             ->group(function () {
+
                 Route::post('/', [CourseController::class, 'store'])
                     ->name('store');
 
@@ -418,28 +408,6 @@ Route::prefix('v1')->group(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | Course Level Management
-        |--------------------------------------------------------------------------
-        */
-
-        Route::middleware([
-            'role:admin',
-            'permission:manage_courses',
-        ])->prefix('admin/courses/{course}/levels')
-            ->name('api.v1.admin.courses.levels.')
-            ->group(function () {
-                Route::post('/', [CourseLevelController::class, 'store'])
-                    ->name('store');
-
-                Route::patch('/{level}', [CourseLevelController::class, 'update'])
-                    ->name('update');
-
-                Route::delete('/{level}', [CourseLevelController::class, 'destroy'])
-                    ->name('destroy');
-            });
-
-        /*
-        |--------------------------------------------------------------------------
         | Course Lesson Management
         |--------------------------------------------------------------------------
         */
@@ -447,9 +415,10 @@ Route::prefix('v1')->group(function () {
         Route::middleware([
             'role:admin,instructor',
             'permission:manage_lessons',
-        ])->prefix('admin/course-levels/{level}/lessons')
-            ->name('api.v1.admin.course-levels.lessons.')
+        ])->prefix('admin/courses/{course}/lessons')
+            ->name('api.v1.admin.courses.lessons.')
             ->group(function () {
+
                 Route::post('/', [CourseLessonController::class, 'store'])
                     ->name('store');
 
@@ -472,6 +441,7 @@ Route::prefix('v1')->group(function () {
         ])->prefix('admin/lessons/{lesson}/resources')
             ->name('api.v1.admin.lessons.resources.')
             ->group(function () {
+
                 Route::post('/', [LessonResourceController::class, 'store'])
                     ->name('store');
 
@@ -491,9 +461,10 @@ Route::prefix('v1')->group(function () {
         Route::middleware([
             'role:admin',
             'permission:manage_groups',
-        ])->prefix('admin/course-levels/{level}')
-            ->name('api.v1.admin.course-levels.groups.')
+        ])->prefix('admin/courses/{course}')
+            ->name('api.v1.admin.courses.groups.')
             ->group(function () {
+
                 Route::get('/groups', [GroupController::class, 'index'])
                     ->name('index');
 
@@ -522,6 +493,7 @@ Route::prefix('v1')->group(function () {
         ])->prefix('admin/groups/{group}/instructors')
             ->name('api.v1.admin.groups.instructors.')
             ->group(function () {
+
                 Route::get('/', [GroupInstructorController::class, 'index'])
                     ->name('index');
 
@@ -549,6 +521,7 @@ Route::prefix('v1')->group(function () {
         ])->prefix('admin/groups/{group}/enrollments')
             ->name('api.v1.admin.groups.enrollments.')
             ->group(function () {
+
                 Route::get('/', [EnrollmentController::class, 'index'])
                     ->name('index');
 
@@ -578,10 +551,11 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware([
             'role:admin,instructor',
-            'permission:manage_sessions'
+            'permission:manage_sessions',
         ])->prefix('admin/groups/{group}/sessions')
             ->name('api.v1.admin.groups.sessions.')
             ->group(function () {
+
                 Route::get('/', [ClassSessionController::class, 'index'])
                     ->name('index');
 
@@ -600,7 +574,7 @@ Route::prefix('v1')->group(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | Invoice & Payment Management
+        | Admin Invoice Management
         |--------------------------------------------------------------------------
         */
 
@@ -610,110 +584,82 @@ Route::prefix('v1')->group(function () {
         ])->prefix('admin/invoices')
             ->name('api.v1.admin.invoices.')
             ->group(function () {
-                Route::get('/', [
-                    InvoiceController::class,
-                    'index',
-                ])->name('index');
 
-                Route::get('/{invoice}', [
-                    InvoiceController::class,
-                    'show',
-                ])->name('show');
+                Route::get('/', [AdminInvoiceController::class, 'index'])
+                    ->name('index');
+
+                Route::post('/', [AdminInvoiceController::class, 'store'])
+                    ->name('store');
+
+                Route::get('/{invoice}', [AdminInvoiceController::class, 'show'])
+                    ->name('show');
+
+                Route::patch('/{invoice}', [AdminInvoiceController::class, 'update'])
+                    ->name('update');
+
+                Route::delete('/{invoice}', [AdminInvoiceController::class, 'destroy'])
+                    ->name('destroy');
             });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Payment Installments
+        |--------------------------------------------------------------------------
+        */
+
+        Route::middleware([
+            'role:admin',
+            'permission:manage_payments',
+        ])->prefix('admin/invoices/{invoice}/installments')
+            ->name('api.v1.admin.invoices.installments.')
+            ->group(function () {
+
+                Route::get('/', [PaymentInstallmentController::class, 'index'])
+                    ->name('index');
+
+                Route::post('/', [PaymentInstallmentController::class, 'store'])
+                    ->name('store');
+
+                Route::patch('/{installment}', [PaymentInstallmentController::class, 'update'])
+                    ->name('update');
+
+                Route::delete('/{installment}', [PaymentInstallmentController::class, 'destroy'])
+                    ->name('destroy');
+            });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Payments
+        |--------------------------------------------------------------------------
+        */
+
+        Route::middleware([
+            'role:admin',
+            'permission:manage_payments',
+        ])->prefix('admin/payments')
+            ->name('api.v1.admin.payments.')
+            ->group(function () {
+
+                Route::get('/', [PaymentController::class, 'index'])
+                    ->name('index');
+
+                Route::post('/', [PaymentController::class, 'store'])
+                    ->name('store');
+
+                Route::get('/{payment}', [PaymentController::class, 'show'])
+                    ->name('show');
+            });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Financial Summary
+        |--------------------------------------------------------------------------
+        */
+
+        Route::middleware([
+            'role:admin',
+            'permission:manage_payments',
+        ])->get('/admin/financial-summary', AdminFinancialSummaryController::class)
+            ->name('api.v1.admin.financial-summary');
     });
-
-    /*
-|--------------------------------------------------------------------------
-| Admin Invoice Management
-|--------------------------------------------------------------------------create_payment_installments_table
-*/
-
-    Route::middleware([
-        'role:admin',
-        'permission:manage_payments',
-    ])->prefix('admin/invoices')
-        ->name('api.v1.admin.invoices.')
-        ->group(function () {
-            Route::get('/', [AdminInvoiceController::class, 'index'])
-                ->name('index');
-
-            Route::post('/', [AdminInvoiceController::class, 'store'])
-                ->name('store');
-
-            Route::get('/{invoice}', [AdminInvoiceController::class, 'show'])
-                ->name('show');
-
-            Route::patch('/{invoice}', [AdminInvoiceController::class, 'update'])
-                ->name('update');
-
-            Route::delete('/{invoice}', [AdminInvoiceController::class, 'destroy'])
-                ->name('destroy');
-        });
-
-    // Admin Financial Summary
-    Route::middleware([
-        'role:admin',
-        'permission:manage_payments',
-    ])->get('/admin/financial-summary', AdminFinancialSummaryController::class)
-        ->name('api.v1.admin.financial-summary');
-
-    /*
-    |--------------------------------------------------------------------------
-    | Admin Payment Installments
-    |--------------------------------------------------------------------------
-    */
-
-    Route::middleware([
-        'role:admin',
-        'permission:manage_payments',
-    ])->prefix('admin/invoices/{invoice}/installments')
-        ->name('api.v1.admin.invoices.installments.')
-        ->group(function () {
-            Route::get('/', [PaymentInstallmentController::class, 'index'])
-                ->name('index');
-
-            Route::post('/', [PaymentInstallmentController::class, 'store'])
-                ->name('store');
-
-            Route::patch('/{installment}', [PaymentInstallmentController::class, 'update'])
-                ->name('update');
-
-            Route::delete('/{installment}', [PaymentInstallmentController::class, 'destroy'])
-                ->name('destroy');
-        });
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Admin Payment Management
-    |--------------------------------------------------------------------------
-    */
-
-    Route::middleware([
-        'auth:sanctum',
-        \App\Http\Middleware\EnsureUserIsActive::class,
-        'role:admin',
-        'permission:manage_payments',
-    ])->prefix('admin/payments')
-        ->name('api.v1.admin.payments.')
-        ->group(function () {
-            Route::get('/', [PaymentController::class, 'index'])->name('index');
-            Route::post('/', [PaymentController::class, 'store'])->name('store');
-            Route::get('/{payment}', [PaymentController::class, 'show'])->name('show');
-        });
-
-    /*
-    |--------------------------------------------------------------------------
-    | Admin Financial Summary
-    |--------------------------------------------------------------------------
-    */
-
-    Route::middleware([
-        'auth:sanctum',
-        \App\Http\Middleware\EnsureUserIsActive::class,
-        'role:admin',
-        'permission:manage_payments',
-    ])->get('/admin/financial-summary', AdminFinancialSummaryController::class)
-        ->name('api.v1.admin.financial-summary');
-
 });

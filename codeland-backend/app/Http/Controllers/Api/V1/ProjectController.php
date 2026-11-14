@@ -5,11 +5,11 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\StoreProjectRequest;
 use App\Http\Requests\Api\V1\UpdateProjectRequest;
+use App\Models\Course;
 use App\Models\Group;
 use App\Models\Project;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class ProjectController extends Controller
 {
@@ -24,7 +24,7 @@ class ProjectController extends Controller
 
         $query = Project::query()
             ->with([
-                'courseLevel',
+                'course',
                 'group',
                 'creator:id,name',
             ]);
@@ -36,10 +36,10 @@ class ProjectController extends Controller
             $query->whereIn('group_id', $groupIds);
         }
 
-        if ($request->filled('course_level_id')) {
+        if ($request->filled('course_id')) {
             $query->where(
-                'course_level_id',
-                $request->integer('course_level_id')
+                'course_id',
+                $request->integer('course_id')
             );
         }
 
@@ -58,9 +58,7 @@ class ProjectController extends Controller
         }
 
         return response()->json([
-            'data' => $query
-                ->latest()
-                ->paginate(15),
+            'data' => $query->latest()->paginate(15),
         ]);
     }
 
@@ -75,6 +73,8 @@ class ProjectController extends Controller
 
         $data = $request->validated();
 
+        $course = Course::findOrFail($data['course_id']);
+
         if ($user->hasRole('instructor') && !$user->hasRole('admin')) {
             abort_if(
                 empty($data['group_id']),
@@ -82,25 +82,39 @@ class ProjectController extends Controller
                 'Instructors can only create projects for their assigned groups.'
             );
 
+            $group = Group::findOrFail($data['group_id']);
+
             abort_unless(
                 $user->instructorGroups()
-                    ->whereKey($data['group_id'])
+                    ->whereKey($group->id)
                     ->exists(),
                 403
             );
+
+            abort_unless(
+                (int) $group->course_id === (int) $course->id,
+                422,
+                'The selected group does not belong to the selected course.'
+            );
+        } elseif (!empty($data['group_id'])) {
+            $group = Group::findOrFail($data['group_id']);
+
+            abort_unless(
+                (int) $group->course_id === (int) $course->id,
+                422,
+                'The selected group does not belong to the selected course.'
+            );
         }
 
-        $project = DB::transaction(function () use ($data, $user) {
-            return Project::create([
-                ...$data,
-                'created_by' => $user->id,
-            ]);
-        });
+        $project = Project::create([
+            ...$data,
+            'created_by' => $user->id,
+        ]);
 
         return response()->json([
             'message' => 'Project created successfully.',
             'data' => $project->load([
-                'courseLevel',
+                'course',
                 'group',
                 'creator:id,name',
             ]),
@@ -113,13 +127,87 @@ class ProjectController extends Controller
 
         return response()->json([
             'data' => $project->load([
-                'courseLevel',
+                'course',
                 'group',
                 'creator:id,name',
             ]),
         ]);
     }
 
+    public function update(
+        UpdateProjectRequest $request,
+        Project $project
+    ): JsonResponse {
+        $this->authorizeProjectAccess($request, $project);
+
+        $user = $request->user();
+        $data = $request->validated();
+
+        unset($data['created_by']);
+
+        $newCourseId = $data['course_id'] ?? $project->course_id;
+
+        $newGroupId = array_key_exists('group_id', $data)
+            ? $data['group_id']
+            : $project->group_id;
+
+        $course = Course::findOrFail($newCourseId);
+
+        if ($newGroupId !== null) {
+            $group = Group::findOrFail($newGroupId);
+
+            abort_unless(
+                (int) $group->course_id === (int) $course->id,
+                422,
+                'The selected group does not belong to the selected course.'
+            );
+        }
+
+        if (
+            $user->hasRole('instructor')
+            && !$user->hasRole('admin')
+        ) {
+            abort_if($newGroupId === null, 403);
+
+            abort_unless(
+                $user->instructorGroups()
+                    ->whereKey($newGroupId)
+                    ->exists(),
+                403
+            );
+        }
+
+        $scopeChanged =
+            (int) $newCourseId !== (int) $project->course_id
+            || (
+                $newGroupId === null
+                ? null
+                : (int) $newGroupId
+            ) !== (
+                $project->group_id === null
+                ? null
+                : (int) $project->group_id
+            );
+
+        if ($scopeChanged) {
+            abort_if(
+                $project->studentProjects()->exists(),
+                409,
+                'The project scope cannot be changed after student submissions exist.'
+            );
+        }
+
+        $project->update($data);
+
+        return response()->json([
+            'message' => 'Project updated successfully.',
+            'data' => $project->fresh()->load([
+                'course',
+                'group',
+                'creator:id,name',
+            ]),
+        ]);
+    }
 
     public function destroy(
         Request $request,
@@ -165,78 +253,4 @@ class ProjectController extends Controller
             );
         }
     }
-
-
-    public function update(
-        UpdateProjectRequest $request,
-        Project $project
-    ): JsonResponse {
-        $this->authorizeProjectAccess($request, $project);
-
-        $user = $request->user();
-        $data = $request->validated();
-        unset($data['created_by']);
-        $newCourseLevelId = $data['course_level_id']
-            ?? $project->course_level_id;
-
-        $newGroupId = array_key_exists('group_id', $data)
-            ? $data['group_id']
-            : $project->group_id;
-
-        if ($newGroupId !== null) {
-            $group = Group::query()->findOrFail($newGroupId);
-
-            abort_unless(
-                (int) $group->course_level_id === (int) $newCourseLevelId,
-                422,
-                'The selected group does not belong to the selected course level.'
-            );
-        }
-
-        if (
-            $user->hasRole('instructor')
-            && !$user->hasRole('admin')
-        ) {
-            abort_if($newGroupId === null, 403);
-
-            abort_unless(
-                $user->instructorGroups()
-                    ->whereKey($newGroupId)
-                    ->exists(),
-                403
-            );
-        }
-
-        $scopeChanged =
-            (int) $newCourseLevelId !== (int) $project->course_level_id
-            || (
-                $newGroupId === null
-                ? null
-                : (int) $newGroupId
-            ) !== (
-                $project->group_id === null
-                ? null
-                : (int) $project->group_id
-            );
-
-        if ($scopeChanged) {
-            abort_if(
-                $project->studentProjects()->exists(),
-                409,
-                'The project scope cannot be changed after student submissions exist.'
-            );
-        }
-
-        $project->update($data);
-
-        return response()->json([
-            'message' => 'Project updated successfully.',
-            'data' => $project->fresh()->load([
-                'courseLevel',
-                'group',
-                'creator:id,name',
-            ]),
-        ]);
-    }
-
 }

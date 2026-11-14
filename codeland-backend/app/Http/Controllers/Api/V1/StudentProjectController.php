@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\V1;
 use App\Enums\StudentProjectStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Enrollment;
-use App\Models\Group;
 use App\Models\Project;
 use App\Models\StudentProject;
 use Illuminate\Http\JsonResponse;
@@ -22,7 +21,7 @@ class StudentProjectController extends Controller
 
         $enrollments = Enrollment::query()
             ->where('student_id', $student->id)
-            ->with('group:id,course_level_id')
+            ->with('group:id,course_id')
             ->get();
 
         $groupIds = $enrollments
@@ -31,23 +30,23 @@ class StudentProjectController extends Controller
             ->unique()
             ->values();
 
-        $courseLevelIds = $enrollments
-            ->pluck('group.course_level_id')
+        $courseIds = $enrollments
+            ->pluck('group.course_id')
             ->filter()
             ->unique()
             ->values();
 
         $projects = Project::query()
             ->where('is_active', true)
-            ->where(function ($query) use ($groupIds, $courseLevelIds) {
+            ->where(function ($query) use ($groupIds, $courseIds) {
                 $query->whereIn('group_id', $groupIds)
-                    ->orWhere(function ($query) use ($courseLevelIds) {
+                    ->orWhere(function ($query) use ($courseIds) {
                         $query->whereNull('group_id')
-                            ->whereIn('course_level_id', $courseLevelIds);
+                            ->whereIn('course_id', $courseIds);
                     });
             })
             ->with([
-                'courseLevel',
+                'course',
                 'group',
                 'studentProjects' => function ($query) use ($student) {
                     $query
@@ -108,8 +107,8 @@ class StudentProjectController extends Controller
                 $isEnrolled = (clone $enrollments)
                     ->whereHas('group', function ($query) use ($lockedProject) {
                         $query->where(
-                            'course_level_id',
-                            $lockedProject->course_level_id
+                            'course_id',
+                            $lockedProject->course_id
                         );
                     })
                     ->exists();
@@ -145,7 +144,7 @@ class StudentProjectController extends Controller
             return StudentProject::create([
                 'student_id' => $student->id,
                 'project_id' => $lockedProject->id,
-                'course_level_id' => $lockedProject->course_level_id,
+                'course_id' => $lockedProject->course_id,
                 'group_id' => $lockedProject->group_id,
                 'title' => $lockedProject->title,
                 'description' => $lockedProject->description,
@@ -170,7 +169,7 @@ class StudentProjectController extends Controller
             ->where('student_id', $student->id)
             ->with([
                 'project:id,title,description,due_at',
-                'courseLevel:id,name',
+                'course:id,title',
                 'group:id,name',
                 'reviewer:id,name',
             ])
@@ -181,5 +180,4 @@ class StudentProjectController extends Controller
             'data' => $submissions,
         ]);
     }
-
 }

@@ -9,7 +9,7 @@ class StudentEvaluation extends Model
 {
     protected $fillable = [
         'student_id',
-        'course_level_id',
+        'course_id',
         'group_id',
         'instructor_id',
         'understanding_score',
@@ -40,9 +40,9 @@ class StudentEvaluation extends Model
         return $this->belongsTo(User::class, 'student_id');
     }
 
-    public function courseLevel(): BelongsTo
+    public function course(): BelongsTo
     {
-        return $this->belongsTo(CourseLevel::class);
+        return $this->belongsTo(Course::class);
     }
 
     public function group(): BelongsTo

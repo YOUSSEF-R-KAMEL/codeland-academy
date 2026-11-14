@@ -29,7 +29,7 @@ class StudentInvoiceController extends Controller
             })
             ->with([
                 'enrollment.student:id,name',
-                'enrollment.group.courseLevel.course:id,title',
+                'enrollment.group.course:id,title',
                 'installments.payments',
             ])
             ->orderByDesc('issued_at')
@@ -60,7 +60,7 @@ class StudentInvoiceController extends Controller
 
         $invoice->load([
             'enrollment.student:id,name',
-            'enrollment.group.courseLevel.course:id,title',
+            'enrollment.group.course:id,title',
             'installments.payments',
             'payments.installment',
             'payments.recordedBy:id,name',

@@ -15,17 +15,17 @@ class StoreProjectRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'course_level_id' => [
+            'course_id' => [
                 'required',
                 'integer',
-                'exists:course_levels,id',
+                'exists:courses,id',
             ],
 
             'group_id' => [
                 'nullable',
                 'integer',
                 Rule::exists('groups', 'id')
-                    ->where('course_level_id', $this->input('course_level_id')),
+                    ->where('course_id', $this->input('course_id')),
             ],
 
             'title' => [

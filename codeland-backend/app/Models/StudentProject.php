@@ -11,7 +11,7 @@ class StudentProject extends Model
     protected $fillable = [
         'project_id',
         'student_id',
-        'course_level_id',
+        'course_id',
         'group_id',
         'title',
         'description',
@@ -24,11 +24,6 @@ class StudentProject extends Model
         'is_featured',
     ];
 
-    public function project(): BelongsTo
-    {
-        return $this->belongsTo(Project::class);
-    }
-
     protected function casts(): array
     {
         return [
@@ -39,14 +34,19 @@ class StudentProject extends Model
         ];
     }
 
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
+    }
+
     public function student(): BelongsTo
     {
         return $this->belongsTo(User::class, 'student_id');
     }
 
-    public function courseLevel(): BelongsTo
+    public function course(): BelongsTo
     {
-        return $this->belongsTo(CourseLevel::class);
+        return $this->belongsTo(Course::class);
     }
 
     public function group(): BelongsTo

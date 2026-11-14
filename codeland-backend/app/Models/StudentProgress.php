@@ -11,7 +11,7 @@ class StudentProgress extends Model
 
     protected $fillable = [
         'student_id',
-        'course_level_id',
+        'course_id',
         'completed_lessons',
         'total_lessons',
         'progress_percentage',
@@ -35,8 +35,8 @@ class StudentProgress extends Model
         return $this->belongsTo(User::class, 'student_id');
     }
 
-    public function courseLevel(): BelongsTo
+    public function course(): BelongsTo
     {
-        return $this->belongsTo(CourseLevel::class);
+        return $this->belongsTo(Course::class);
     }
 }

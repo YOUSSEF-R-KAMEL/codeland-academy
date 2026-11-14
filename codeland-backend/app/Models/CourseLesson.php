@@ -5,14 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 class CourseLesson extends Model
 {
     use SoftDeletes;
 
     protected $fillable = [
-        'course_level_id',
+        'course_id',
         'title',
         'description',
         'lesson_number',
@@ -34,9 +35,9 @@ class CourseLesson extends Model
         ];
     }
 
-    public function courseLevel(): BelongsTo
+    public function course(): BelongsTo
     {
-        return $this->belongsTo(CourseLevel::class);
+        return $this->belongsTo(Course::class);
     }
 
     public function resources(): HasMany

@@ -2,25 +2,16 @@
 
 namespace App\Http\Requests\Api\V1;
 
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateCourseRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
@@ -52,6 +43,50 @@ class UpdateCourseRequest extends FormRequest
                 'nullable',
                 'url',
                 'max:2048',
+            ],
+
+            'duration_weeks' => [
+                'sometimes',
+                'required',
+                'integer',
+                'min:1',
+            ],
+
+            'sessions_per_week' => [
+                'sometimes',
+                'required',
+                'integer',
+                'min:1',
+                'max:7',
+            ],
+
+            'session_duration_minutes' => [
+                'sometimes',
+                'required',
+                'integer',
+                'min:15',
+            ],
+
+            'full_price' => [
+                'sometimes',
+                'required',
+                'numeric',
+                'min:0',
+            ],
+
+            'monthly_price' => [
+                'sometimes',
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+
+            'currency' => [
+                'sometimes',
+                'required',
+                'string',
+                'size:3',
+                'in:EGP',
             ],
 
             'is_published' => [

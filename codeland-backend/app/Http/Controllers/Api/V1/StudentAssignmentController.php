@@ -12,12 +12,16 @@ class StudentAssignmentController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $levelIds = Enrollment::query()
-            ->where('student_id', $request->user()->id)
+        $student = $request->user();
+
+        abort_unless($student->hasRole('student'), 403);
+
+        $courseIds = Enrollment::query()
+            ->where('student_id', $student->id)
             ->where('status', 'active')
-            ->with('group:id,course_level_id')
+            ->with('group:id,course_id')
             ->get()
-            ->pluck('group.course_level_id')
+            ->pluck('group.course_id')
             ->filter()
             ->unique()
             ->values();
@@ -26,17 +30,14 @@ class StudentAssignmentController extends Controller
             ->where('is_published', true)
             ->whereNotNull('published_at')
             ->where('published_at', '<=', now())
-            ->whereHas('courseLesson', function ($query) use ($levelIds) {
-                $query->whereIn('course_level_id', $levelIds);
+            ->whereHas('courseLesson', function ($query) use ($courseIds) {
+                $query->whereIn('course_id', $courseIds);
             })
             ->with([
-                'courseLesson:id,course_level_id,title,lesson_number',
-                'courseLesson.courseLevel:id,course_id,name',
-                'courseLesson.courseLevel.course:id,title',
-            ])
-            ->with([
-                'submissions' => function ($query) use ($request) {
-                    $query->where('student_id', $request->user()->id)
+                'courseLesson:id,course_id,title,lesson_number',
+                'courseLesson.course:id,title',
+                'submissions' => function ($query) use ($student) {
+                    $query->where('student_id', $student->id)
                         ->with([
                             'feedbackTemplate:id,rating,comment',
                             'reviewer:id,name',
@@ -55,6 +56,10 @@ class StudentAssignmentController extends Controller
         Request $request,
         Assignment $assignment
     ): JsonResponse {
+        $student = $request->user();
+
+        abort_unless($student->hasRole('student'), 403);
+
         abort_unless(
             $assignment->is_published
             && $assignment->published_at
@@ -63,22 +68,26 @@ class StudentAssignmentController extends Controller
         );
 
         $hasEnrollment = Enrollment::query()
-            ->where('student_id', $request->user()->id)
+            ->where('student_id', $student->id)
             ->where('status', 'active')
             ->whereHas('group', function ($query) use ($assignment) {
                 $query->where(
-                    'course_level_id',
-                    $assignment->courseLesson->course_level_id
+                    'course_id',
+                    $assignment->courseLesson->course_id
                 );
             })
             ->exists();
 
-        abort_unless($hasEnrollment, 403, 'You are not enrolled in this lesson level.');
+        abort_unless(
+            $hasEnrollment,
+            403,
+            'You are not enrolled in this course.'
+        );
 
         $assignment->load([
-            'courseLesson.courseLevel.course',
-            'submissions' => function ($query) use ($request) {
-                $query->where('student_id', $request->user()->id)
+            'courseLesson.course',
+            'submissions' => function ($query) use ($student) {
+                $query->where('student_id', $student->id)
                     ->with([
                         'feedbackTemplate:id,rating,comment',
                         'reviewer:id,name',

@@ -18,7 +18,7 @@ class AdminInvoiceController extends Controller
         $invoices = Invoice::query()
             ->with([
                 'enrollment.student:id,name',
-                'enrollment.group.courseLevel.course:id,title',
+                'enrollment.group.course:id,title',
                 'installments.payments',
                 'payments.recordedBy:id,name',
             ])
@@ -56,7 +56,7 @@ class AdminInvoiceController extends Controller
     {
         $invoice->load([
             'enrollment.student:id,name',
-            'enrollment.group.courseLevel.course:id,title',
+            'enrollment.group.course:id,title',
             'installments.payments',
             'payments.installment',
             'payments.recordedBy:id,name',
@@ -110,7 +110,7 @@ class AdminInvoiceController extends Controller
         ]);
 
         $enrollment = Enrollment::with([
-            'group.courseLevel.course',
+            'group.course',
         ])->findOrFail($data['enrollment_id']);
 
         $invoice = DB::transaction(function () use ($data, $enrollment) {

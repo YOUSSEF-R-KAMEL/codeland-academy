@@ -116,9 +116,10 @@ class LessonResourceController extends ApiController
             abort_unless($lesson->is_published, 404);
 
             $isEnrolled = Group::query()
-                ->where('course_level_id', $lesson->course_level_id)
+                ->where('course_id', $lesson->course_id)
                 ->whereHas('enrollments', function ($query) use ($user) {
-                    $query->where('student_id', $user->id);
+                    $query->where('student_id', $user->id)
+                        ->where('status', 'active');
                 })
                 ->exists();
 
@@ -129,7 +130,7 @@ class LessonResourceController extends ApiController
 
         if ($user->hasRole('instructor')) {
             $hasAssignedGroup = $user->instructorGroups()
-                ->where('course_level_id', $lesson->course_level_id)
+                ->where('course_id', $lesson->course_id)
                 ->exists();
 
             abort_unless($hasAssignedGroup, 403);
@@ -149,7 +150,7 @@ class LessonResourceController extends ApiController
         }
 
         $hasAssignedGroup = $user->instructorGroups()
-            ->where('course_level_id', $lesson->course_level_id)
+            ->where('course_id', $lesson->course_id)
             ->exists();
 
         abort_unless($hasAssignedGroup, 403);

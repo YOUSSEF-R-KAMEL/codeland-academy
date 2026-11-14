@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Api\V1;
-use Illuminate\Support\Facades\DB;
+
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\StoreClassSessionRequest;
 use App\Http\Requests\Api\V1\UpdateClassSessionRequest;
@@ -9,6 +9,7 @@ use App\Models\ClassSession;
 use App\Models\CourseLesson;
 use App\Models\Group;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class ClassSessionController extends Controller
 {
@@ -58,9 +59,9 @@ class ClassSessionController extends Controller
                 $lesson = CourseLesson::findOrFail($data['course_lesson_id']);
 
                 abort_unless(
-                    $lesson->course_level_id === $group->course_level_id,
+                    $lesson->course_id === $group->course_id,
                     422,
-                    'The selected lesson does not belong to this group course level.'
+                    'The selected lesson does not belong to this group course.'
                 );
             }
 
@@ -107,9 +108,9 @@ class ClassSessionController extends Controller
                 $lesson = CourseLesson::findOrFail($data['course_lesson_id']);
 
                 abort_unless(
-                    $lesson->course_level_id === $group->course_level_id,
+                    $lesson->course_id === $group->course_id,
                     422,
-                    'The selected lesson does not belong to this group course level.'
+                    'The selected lesson does not belong to this group course.'
                 );
             }
 
