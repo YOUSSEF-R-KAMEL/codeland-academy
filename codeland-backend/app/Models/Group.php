@@ -78,4 +78,14 @@ class Group extends Model
     {
         return $this->hasMany(Assignment::class);
     }
+
+    public function studentEvaluations(): HasMany
+    {
+        return $this->hasMany(StudentEvaluation::class);
+    }
+
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class);
+    }
 }

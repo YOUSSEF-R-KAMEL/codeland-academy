@@ -69,6 +69,23 @@ class GroupController extends Controller
     ): JsonResponse {
         abort_unless($group->course_id === $course->id, 404);
 
+        $hasRelatedRecords =
+            $group->enrollments()->withTrashed()->exists()
+            || $group->sessions()->withTrashed()->exists()
+            || $group->instructors()->exists()
+            || $group->studentProjects()->exists()
+            || $group->announcements()->withTrashed()->exists()
+            || $group->studentEvaluations()->exists()
+            || $group->studentQuestions()->exists()
+            || $group->projects()->exists();
+
+        if ($hasRelatedRecords) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This group cannot be deleted because it has related academic records.',
+            ], 422);
+        }
+
         $group->delete();
 
         return response()->json([
