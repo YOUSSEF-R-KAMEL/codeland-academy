@@ -31,27 +31,21 @@ class PaymentInstallmentController extends Controller
         ]);
     }
 
-
-    public function store(Request $request, Invoice $invoice): JsonResponse
-    {
-        abort_unless(
-            $invoice->payment_plan === 'installments',
-            422,
-            'Installments are not allowed for this invoice.'
-        );
-
+    public function store(
+        Request $request,
+        Invoice $invoice
+    ): JsonResponse {
         $data = $request->validate([
             'installment_number' => [
                 'required',
                 'integer',
                 'min:1',
-                Rule::unique('payment_installments', 'installment_number')
-                    ->where('invoice_id', $invoice->id),
             ],
             'amount' => [
                 'required',
                 'numeric',
                 'min:0.01',
+                'max:99999999.99',
             ],
             'due_at' => [
                 'required',
@@ -65,16 +59,41 @@ class PaymentInstallmentController extends Controller
         ]);
 
         $installment = DB::transaction(function () use ($invoice, $data) {
-            $lockedInvoice = Invoice::whereKey($invoice->id)
+            $lockedInvoice = Invoice::query()
                 ->lockForUpdate()
-                ->firstOrFail();
+                ->findOrFail($invoice->id);
 
-            $existingAmount = $lockedInvoice->installments()
-                ->sum('amount');
+            abort_unless(
+                $lockedInvoice->payment_plan === 'monthly',
+                422,
+                'Installments are only allowed for monthly invoices.'
+            );
 
-            $totalCents = (int) round((float) $lockedInvoice->total_amount * 100);
-            $existingCents = (int) round((float) $existingAmount * 100);
-            $newCents = (int) round((float) $data['amount'] * 100);
+            $numberExists = $lockedInvoice->installments()
+                ->where(
+                    'installment_number',
+                    $data['installment_number']
+                )
+                ->exists();
+
+            abort_if(
+                $numberExists,
+                422,
+                'This installment number already exists.'
+            );
+
+            $existingCents = (int) round(
+                (float) $lockedInvoice->installments()
+                    ->sum('amount') * 100
+            );
+
+            $totalCents = (int) round(
+                (float) $lockedInvoice->total_amount * 100
+            );
+
+            $newCents = (int) round(
+                (float) $data['amount'] * 100
+            );
 
             abort_if(
                 $existingCents + $newCents > $totalCents,
@@ -103,12 +122,9 @@ class PaymentInstallmentController extends Controller
         Invoice $invoice,
         PaymentInstallment $installment
     ): JsonResponse {
-        abort_unless($installment->invoice_id === $invoice->id, 404);
-
-        abort_if(
-            $installment->payments()->exists(),
-            422,
-            'Installments with payment records cannot be updated.'
+        abort_unless(
+            $installment->invoice_id === $invoice->id,
+            404
         );
 
         $data = $request->validate([
@@ -117,15 +133,13 @@ class PaymentInstallmentController extends Controller
                 'required',
                 'integer',
                 'min:1',
-                Rule::unique('payment_installments', 'installment_number')
-                    ->where('invoice_id', $invoice->id)
-                    ->ignore($installment->id),
             ],
             'amount' => [
                 'sometimes',
                 'required',
                 'numeric',
                 'min:0.01',
+                'max:99999999.99',
             ],
             'due_at' => [
                 'sometimes',
@@ -139,19 +153,58 @@ class PaymentInstallmentController extends Controller
             ],
         ]);
 
-        DB::transaction(function () use ($invoice, $installment, $data) {
-            $lockedInvoice = Invoice::whereKey($invoice->id)
+        $updatedInstallment = DB::transaction(function () use ($invoice, $installment, $data) {
+            $lockedInvoice = Invoice::query()
                 ->lockForUpdate()
-                ->firstOrFail();
+                ->findOrFail($invoice->id);
+
+            abort_unless(
+                $lockedInvoice->payment_plan === 'monthly',
+                422,
+                'Installments are only allowed for monthly invoices.'
+            );
+
+            $lockedInstallment = PaymentInstallment::query()
+                ->where('invoice_id', $lockedInvoice->id)
+                ->lockForUpdate()
+                ->findOrFail($installment->id);
+
+            abort_if(
+                $lockedInstallment->payments()->exists(),
+                422,
+                'Installments with payment records cannot be updated.'
+            );
+
+            if (isset($data['installment_number'])) {
+                $numberExists = $lockedInvoice->installments()
+                    ->where(
+                        'installment_number',
+                        $data['installment_number']
+                    )
+                    ->where('id', '!=', $lockedInstallment->id)
+                    ->exists();
+
+                abort_if(
+                    $numberExists,
+                    422,
+                    'This installment number already exists.'
+                );
+            }
 
             if (isset($data['amount'])) {
-                $otherAmount = $lockedInvoice->installments()
-                    ->where('id', '!=', $installment->id)
-                    ->sum('amount');
+                $otherCents = (int) round(
+                    (float) $lockedInvoice->installments()
+                        ->where('id', '!=', $lockedInstallment->id)
+                        ->sum('amount') * 100
+                );
 
-                $totalCents = (int) round((float) $lockedInvoice->total_amount * 100);
-                $otherCents = (int) round((float) $otherAmount * 100);
-                $newCents = (int) round((float) $data['amount'] * 100);
+                $totalCents = (int) round(
+                    (float) $lockedInvoice->total_amount * 100
+                );
+
+                $newCents = (int) round(
+                    (float) $data['amount'] * 100
+                );
 
                 abort_if(
                     $otherCents + $newCents > $totalCents,
@@ -160,13 +213,15 @@ class PaymentInstallmentController extends Controller
                 );
             }
 
-            $installment->update($data);
+            $lockedInstallment->update($data);
+
+            return $lockedInstallment->fresh('payments');
         });
 
         return response()->json([
             'success' => true,
             'message' => 'Installment updated successfully.',
-            'data' => $installment->fresh(),
+            'data' => $updatedInstallment,
         ]);
     }
 
@@ -174,15 +229,35 @@ class PaymentInstallmentController extends Controller
         Invoice $invoice,
         PaymentInstallment $installment
     ): JsonResponse {
-        abort_unless($installment->invoice_id === $invoice->id, 404);
-
-        abort_if(
-            $installment->payments()->exists(),
-            422,
-            'Installments with payment records cannot be deleted.'
+        abort_unless(
+            $installment->invoice_id === $invoice->id,
+            404
         );
 
-        $installment->delete();
+        DB::transaction(function () use ($invoice, $installment) {
+            $lockedInvoice = Invoice::query()
+                ->lockForUpdate()
+                ->findOrFail($invoice->id);
+
+            abort_unless(
+                $lockedInvoice->payment_plan === 'monthly',
+                422,
+                'Installments are only allowed for monthly invoices.'
+            );
+
+            $lockedInstallment = PaymentInstallment::query()
+                ->where('invoice_id', $lockedInvoice->id)
+                ->lockForUpdate()
+                ->findOrFail($installment->id);
+
+            abort_if(
+                $lockedInstallment->payments()->exists(),
+                422,
+                'Installments with payment records cannot be deleted.'
+            );
+
+            $lockedInstallment->delete();
+        });
 
         return response()->json([
             'success' => true,

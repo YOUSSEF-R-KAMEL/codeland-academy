@@ -59,15 +59,6 @@ class StoreClassSessionRequest extends FormRequest
                 'url',
                 'max:2048',
             ],
-            'status' => [
-                'sometimes',
-                'string',
-                Rule::in([
-                    'scheduled',
-                    'completed',
-                    'cancelled',
-                ]),
-            ],
             'notes' => [
                 'sometimes',
                 'nullable',

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Requests\Api\V1\StoreLessonResourceRequest;
 use App\Http\Requests\Api\V1\UpdateLessonResourceRequest;
+use App\Models\Course;
 use App\Models\CourseLesson;
 use App\Models\Group;
 use App\Models\LessonResource;
@@ -143,16 +144,9 @@ class LessonResourceController extends ApiController
 
     private function authorizeLessonManagement(CourseLesson $lesson): void
     {
-        $user = request()->user();
-
-        if ($user->hasRole('admin')) {
-            return;
-        }
-
-        $hasAssignedGroup = $user->instructorGroups()
-            ->where('course_id', $lesson->course_id)
-            ->exists();
-
-        abort_unless($hasAssignedGroup, 403);
+        abort_unless(
+            request()->user()->hasRole('admin'),
+            403
+        );
     }
 }

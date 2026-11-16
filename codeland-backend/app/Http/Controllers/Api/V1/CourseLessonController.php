@@ -181,16 +181,9 @@ class CourseLessonController extends ApiController
 
     private function authorizeLessonManagement(Course $course): void
     {
-        $user = request()->user();
-
-        if ($user->hasRole('admin')) {
-            return;
-        }
-
-        $hasAssignedGroup = $user->instructorGroups()
-            ->where('course_id', $course->id)
-            ->exists();
-
-        abort_unless($hasAssignedGroup, 403);
+        abort_unless(
+            request()->user()->hasRole('admin'),
+            403
+        );
     }
 }

@@ -2,27 +2,27 @@
 
 use App\Http\Controllers\Api\V1\AdminFinancialSummaryController;
 use App\Http\Controllers\Api\V1\AdminInvoiceController;
+use App\Http\Controllers\Api\V1\AssignmentController;
+use App\Http\Controllers\Api\V1\AssignmentSubmissionReviewController;
 use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\ClassSessionController;
 use App\Http\Controllers\Api\V1\CourseController;
 use App\Http\Controllers\Api\V1\CourseLessonController;
 use App\Http\Controllers\Api\V1\EnrollmentController;
+use App\Http\Controllers\Api\V1\FeedbackTemplateController;
 use App\Http\Controllers\Api\V1\GroupController;
 use App\Http\Controllers\Api\V1\GroupInstructorController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\LessonResourceController;
-use App\Http\Controllers\Api\V1\UserController;
-use App\Http\Controllers\Api\V1\ClassSessionController;
-use App\Http\Controllers\Api\V1\AssignmentController;
-use App\Http\Controllers\Api\V1\AssignmentSubmissionReviewController;
-use App\Http\Controllers\Api\V1\FeedbackTemplateController;
+use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\PaymentInstallmentController;
 use App\Http\Controllers\Api\V1\StudentAssignmentController;
 use App\Http\Controllers\Api\V1\StudentAssignmentSubmissionController;
-use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\StudentInvoiceController;
 use App\Http\Controllers\Api\V1\StudentProjectController;
 use App\Http\Controllers\Api\V1\StudentProjectReviewController;
-use App\Http\Controllers\Api\V1\PaymentInstallmentController;
+use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -284,57 +284,6 @@ Route::prefix('v1')->group(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | Lesson Resources & Course Lessons Reading
-        |--------------------------------------------------------------------------
-        */
-
-        Route::middleware('role:admin,instructor,student')->group(function () {
-
-            Route::get(
-                '/lessons/{lesson}/resources',
-                [LessonResourceController::class, 'index']
-            )->name('api.v1.lessons.resources.index');
-
-            Route::get(
-                '/lessons/{lesson}/resources/{resource}',
-                [LessonResourceController::class, 'show']
-            )->name('api.v1.lessons.resources.show');
-
-            Route::get(
-                '/courses/{course}/lessons',
-                [CourseLessonController::class, 'index']
-            )->name('api.v1.courses.lessons.index');
-
-            Route::get(
-                '/courses/{course}/lessons/{lesson}',
-                [CourseLessonController::class, 'show']
-            )->name('api.v1.courses.lessons.show');
-        });
-
-        /*
-        |--------------------------------------------------------------------------
-        | Attendance
-        |--------------------------------------------------------------------------
-        */
-
-        Route::middleware([
-            'role:admin,instructor',
-            'permission:manage_attendance',
-        ])->group(function () {
-
-            Route::get(
-                '/class-sessions/{classSession}/attendance',
-                [AttendanceController::class, 'index']
-            );
-
-            Route::post(
-                '/class-sessions/{classSession}/attendance',
-                [AttendanceController::class, 'store']
-            );
-        });
-
-        /*
-        |--------------------------------------------------------------------------
         | User Management
         |--------------------------------------------------------------------------
         */
@@ -413,7 +362,7 @@ Route::prefix('v1')->group(function () {
         */
 
         Route::middleware([
-            'role:admin,instructor',
+            'role:admin',
             'permission:manage_lessons',
         ])->prefix('admin/courses/{course}/lessons')
             ->name('api.v1.admin.courses.lessons.')
@@ -436,7 +385,7 @@ Route::prefix('v1')->group(function () {
         */
 
         Route::middleware([
-            'role:admin,instructor',
+            'role:admin',
             'permission:manage_lessons',
         ])->prefix('admin/lessons/{lesson}/resources')
             ->name('api.v1.admin.lessons.resources.')
@@ -451,6 +400,35 @@ Route::prefix('v1')->group(function () {
                 Route::delete('/{resource}', [LessonResourceController::class, 'destroy'])
                     ->name('destroy');
             });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Lesson Resources & Course Lessons Reading
+        |--------------------------------------------------------------------------
+        */
+
+        Route::middleware('role:admin,instructor,student')->group(function () {
+
+            Route::get(
+                '/lessons/{lesson}/resources',
+                [LessonResourceController::class, 'index']
+            )->name('api.v1.lessons.resources.index');
+
+            Route::get(
+                '/lessons/{lesson}/resources/{resource}',
+                [LessonResourceController::class, 'show']
+            )->name('api.v1.lessons.resources.show');
+
+            Route::get(
+                '/courses/{course}/lessons',
+                [CourseLessonController::class, 'index']
+            )->name('api.v1.courses.lessons.index');
+
+            Route::get(
+                '/courses/{course}/lessons/{lesson}',
+                [CourseLessonController::class, 'show']
+            )->name('api.v1.courses.lessons.show');
+        });
 
         /*
         |--------------------------------------------------------------------------
@@ -567,9 +545,56 @@ Route::prefix('v1')->group(function () {
 
                 Route::patch('/{classSession}', [ClassSessionController::class, 'update'])
                     ->name('update');
+            });
+
+        // Only Admin can delete class sessions.
+        Route::middleware([
+            'role:admin',
+            'permission:manage_sessions',
+        ])->prefix('admin/groups/{group}/sessions')
+            ->name('api.v1.admin.groups.sessions.')
+            ->group(function () {
 
                 Route::delete('/{classSession}', [ClassSessionController::class, 'destroy'])
                     ->name('destroy');
+            });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Attendance Management
+        |--------------------------------------------------------------------------
+        */
+
+        Route::middleware([
+            'role:admin,instructor',
+            'permission:manage_attendance',
+        ])->group(function () {
+
+            Route::get(
+                '/class-sessions/{classSession}/attendance',
+                [AttendanceController::class, 'index']
+            );
+
+            Route::post(
+                '/class-sessions/{classSession}/attendance',
+                [AttendanceController::class, 'store']
+            );
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Student Attendance
+        |--------------------------------------------------------------------------
+        */
+
+        Route::prefix('student')
+            ->middleware('role:student')
+            ->group(function () {
+
+                Route::get(
+                    '/attendance',
+                    [AttendanceController::class, 'myAttendance']
+                )->name('api.v1.student.attendance.index');
             });
 
         /*
@@ -649,6 +674,33 @@ Route::prefix('v1')->group(function () {
                 Route::get('/{payment}', [PaymentController::class, 'show'])
                     ->name('show');
             });
+
+        Route::middleware([
+            'role:admin',
+            'permission:manage_payments',
+        ])->prefix('admin/payments')
+            ->name('api.v1.admin.payments.')
+            ->group(function () {
+
+                Route::get('/', [PaymentController::class, 'index'])
+                    ->name('index');
+
+                Route::post('/', [PaymentController::class, 'store'])
+                    ->name('store');
+
+                Route::get('/{payment}', [PaymentController::class, 'show'])
+                    ->name('show');
+
+                Route::patch('/{payment}/confirm', [PaymentController::class, 'confirm'])
+                    ->name('confirm');
+
+                Route::patch('/{payment}/reject', [PaymentController::class, 'reject'])
+                    ->name('reject');
+
+                Route::patch('/{payment}/refund', [PaymentController::class, 'refund'])
+                    ->name('refund');
+            });
+
 
         /*
         |--------------------------------------------------------------------------

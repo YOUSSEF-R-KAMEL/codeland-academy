@@ -78,8 +78,9 @@ class ClassSessionController extends Controller
                 ], 422);
             }
 
-            $session = $group->sessions()->create($data);
+            $data['status'] = 'scheduled';
 
+            $session = $group->sessions()->create($data);
             return response()->json([
                 'success' => true,
                 'message' => 'Class session created successfully.',
@@ -87,6 +88,7 @@ class ClassSessionController extends Controller
             ], 201);
         });
     }
+
 
     public function update(
         UpdateClassSessionRequest $request,
@@ -96,6 +98,13 @@ class ClassSessionController extends Controller
         abort_unless($classSession->group_id === $group->id, 404);
 
         $this->authorizeGroupAccess($group);
+
+        if ($classSession->status !== 'scheduled') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only scheduled sessions can be updated.',
+            ], 422);
+        }
 
         $data = $request->validated();
 
@@ -116,22 +125,26 @@ class ClassSessionController extends Controller
 
             $startsAt = $data['starts_at'] ?? $classSession->starts_at;
             $endsAt = $data['ends_at'] ?? $classSession->ends_at;
-            $status = $data['status'] ?? $classSession->status;
 
-            if ($status === 'scheduled') {
-                $hasConflict = ClassSession::where('group_id', $group->id)
-                    ->where('status', 'scheduled')
-                    ->where('id', '!=', $classSession->id)
-                    ->where('starts_at', '<', $endsAt)
-                    ->where('ends_at', '>', $startsAt)
-                    ->exists();
+            if ($endsAt <= $startsAt) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The session end time must be after its start time.',
+                ], 422);
+            }
 
-                if ($hasConflict) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'The group already has a scheduled session during this time.',
-                    ], 422);
-                }
+            $hasConflict = ClassSession::where('group_id', $group->id)
+                ->where('status', 'scheduled')
+                ->where('id', '!=', $classSession->id)
+                ->where('starts_at', '<', $endsAt)
+                ->where('ends_at', '>', $startsAt)
+                ->exists();
+
+            if ($hasConflict) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The group already has a scheduled session during this time.',
+                ], 422);
             }
 
             $classSession->update($data);
@@ -143,6 +156,8 @@ class ClassSessionController extends Controller
             ]);
         });
     }
+
+
 
     public function destroy(
         Group $group,
@@ -166,6 +181,7 @@ class ClassSessionController extends Controller
             'message' => 'Class session deleted successfully.',
         ]);
     }
+
 
     private function authorizeGroupAccess(Group $group): void
     {

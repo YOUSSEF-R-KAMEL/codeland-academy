@@ -18,9 +18,9 @@ class StudentProjectController extends Controller
         $student = $request->user();
 
         abort_unless($student->hasRole('student'), 403);
-
         $enrollments = Enrollment::query()
             ->where('student_id', $student->id)
+            ->where('status', 'active')
             ->with('group:id,course_id')
             ->get();
 
@@ -97,7 +97,8 @@ class StudentProjectController extends Controller
             abort_unless($lockedProject->is_active, 404);
 
             $enrollments = Enrollment::query()
-                ->where('student_id', $student->id);
+                ->where('student_id', $student->id)
+                ->where('status', 'active');
 
             if ($lockedProject->group_id !== null) {
                 $isEnrolled = (clone $enrollments)

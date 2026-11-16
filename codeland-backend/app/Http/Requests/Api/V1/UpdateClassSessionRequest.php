@@ -7,6 +7,7 @@ use Illuminate\Validation\Rule;
 
 class UpdateClassSessionRequest extends FormRequest
 {
+
     public function authorize(): bool
     {
         $user = $this->user();
@@ -19,6 +20,11 @@ class UpdateClassSessionRequest extends FormRequest
             return true;
         }
 
+        // Instructors cannot change session status.
+        if ($this->exists('status')) {
+            return false;
+        }
+
         $group = $this->route('group');
 
         if (!$user->hasRole('instructor') || !$group) {
@@ -29,6 +35,7 @@ class UpdateClassSessionRequest extends FormRequest
             ->where('users.id', $user->id)
             ->exists();
     }
+
 
     public function rules(): array
     {

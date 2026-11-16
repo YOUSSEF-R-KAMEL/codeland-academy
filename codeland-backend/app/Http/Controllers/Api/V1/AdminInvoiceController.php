@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Enrollment;
 use App\Models\Invoice;
+use App\Services\InvoiceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class AdminInvoiceController extends Controller
 {
@@ -34,6 +37,13 @@ class AdminInvoiceController extends Controller
                 fn($query) => $query->where(
                     'enrollment_id',
                     $request->input('enrollment_id')
+                )
+            )
+            ->when(
+                $request->filled('payment_plan'),
+                fn($query) => $query->where(
+                    'payment_plan',
+                    $request->input('payment_plan')
                 )
             )
             ->when(
@@ -68,8 +78,10 @@ class AdminInvoiceController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
-    {
+    public function store(
+        Request $request,
+        InvoiceService $invoiceService
+    ): JsonResponse {
         $data = $request->validate([
             'enrollment_id' => [
                 'required',
@@ -85,7 +97,7 @@ class AdminInvoiceController extends Controller
             ],
             'payment_plan' => [
                 'required',
-                Rule::in(['full', 'installments']),
+                Rule::in(['full', 'monthly']),
             ],
             'currency' => [
                 'sometimes',
@@ -109,24 +121,30 @@ class AdminInvoiceController extends Controller
             ],
         ]);
 
-        $enrollment = Enrollment::with([
-            'group.course',
-        ])->findOrFail($data['enrollment_id']);
+        $enrollment = Enrollment::findOrFail(
+            $data['enrollment_id']
+        );
 
-        $invoice = DB::transaction(function () use ($data, $enrollment) {
-            return Invoice::create([
-                'enrollment_id' => $enrollment->id,
-                'invoice_number' => 'INV-' . now()->format('Ymd') . '-' . Str::upper(Str::random(8)),
-                'total_amount' => $data['total_amount'],
-                'payment_plan' => $data['payment_plan'],
-                'paid_amount' => 0,
-                'currency' => $data['currency'] ?? 'EGP',
-                'status' => 'unpaid',
-                'issued_at' => $data['issued_at'] ?? now()->toDateString(),
-                'due_at' => $data['due_at'] ?? null,
-                'notes' => $data['notes'] ?? null,
-            ]);
-        });
+        $overrides = [
+            'total_amount' => $data['total_amount'],
+        ];
+
+        foreach ([
+            'currency',
+            'issued_at',
+            'due_at',
+            'notes',
+        ] as $field) {
+            if (array_key_exists($field, $data)) {
+                $overrides[$field] = $data[$field];
+            }
+        }
+
+        $invoice = $invoiceService->createForEnrollment(
+            $enrollment,
+            $data['payment_plan'],
+            $overrides
+        );
 
         return response()->json([
             'success' => true,
@@ -138,14 +156,10 @@ class AdminInvoiceController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, Invoice $invoice): JsonResponse
-    {
-        abort_unless(
-            (float) $invoice->paid_amount === 0.0,
-            422,
-            'Paid invoices cannot be updated.'
-        );
-
+    public function update(
+        Request $request,
+        Invoice $invoice
+    ): JsonResponse {
         $data = $request->validate([
             'total_amount' => [
                 'sometimes',
@@ -157,7 +171,7 @@ class AdminInvoiceController extends Controller
             'payment_plan' => [
                 'sometimes',
                 'required',
-                Rule::in(['full', 'installments']),
+                Rule::in(['full', 'monthly']),
             ],
             'currency' => [
                 'sometimes',
@@ -174,7 +188,6 @@ class AdminInvoiceController extends Controller
                 'sometimes',
                 'nullable',
                 'date',
-                'after_or_equal:issued_at',
             ],
             'notes' => [
                 'sometimes',
@@ -183,44 +196,173 @@ class AdminInvoiceController extends Controller
             ],
         ]);
 
-        $invoice->update($data);
+        $updatedInvoice = DB::transaction(function () use ($invoice, $data) {
+            $invoice = Invoice::query()
+                ->lockForUpdate()
+                ->findOrFail($invoice->id);
+
+            $invoice->loadMissing(
+                'enrollment.group.course'
+            );
+
+            $hasPayments = $invoice->payments()->exists()
+                || $invoice->installments()
+                    ->whereHas('payments')
+                    ->exists();
+
+            $financialStructureChanged =
+                array_key_exists('total_amount', $data)
+                || array_key_exists('payment_plan', $data)
+                || array_key_exists('currency', $data);
+
+            if ($financialStructureChanged && $hasPayments) {
+                abort(
+                    422,
+                    'Invoice amount, payment plan and currency cannot be changed after payment records exist.'
+                );
+            }
+
+            $newPaymentPlan = $data['payment_plan']
+                ?? $invoice->payment_plan;
+
+            $newTotalAmount = $data['total_amount']
+                ?? $invoice->total_amount;
+
+            $scheduleChanged =
+                array_key_exists('total_amount', $data)
+                || array_key_exists('payment_plan', $data);
+
+            if ($scheduleChanged) {
+                if ($newPaymentPlan === 'monthly') {
+                    $course = $invoice->enrollment->group->course;
+
+                    if (
+                        !$course ||
+                        !$course->duration_weeks ||
+                        $course->duration_weeks <= 0 ||
+                        $course->duration_weeks % 4 !== 0
+                    ) {
+                        throw ValidationException::withMessages([
+                            'payment_plan' => [
+                                'Monthly installments are not available for this course duration.',
+                            ],
+                        ]);
+                    }
+
+                    $installmentCount = intdiv(
+                        $course->duration_weeks,
+                        4
+                    );
+                } else {
+                    $installmentCount = 0;
+                }
+
+                // Existing installments can only be rebuilt
+                // when no payment records are attached to them.
+                if ($hasPayments) {
+                    abort(
+                        422,
+                        'Installments cannot be rebuilt because payment records exist.'
+                    );
+                }
+
+                $invoice->installments()->delete();
+
+                if ($newPaymentPlan === 'monthly') {
+                    $issuedAt = isset($data['issued_at'])
+                        ? Carbon::parse($data['issued_at'])
+                        : Carbon::parse($invoice->issued_at);
+
+                    $totalCents = (int) round(
+                        (float) $newTotalAmount * 100
+                    );
+
+                    $baseCents = intdiv(
+                        $totalCents,
+                        $installmentCount
+                    );
+
+                    $remainingCents = $totalCents
+                        % $installmentCount;
+
+                    for (
+                        $number = 1;
+                        $number <= $installmentCount;
+                        $number++
+                    ) {
+                        $amountCents = $baseCents
+                            + (
+                                $number <= $remainingCents
+                                ? 1
+                                : 0
+                            );
+
+                        $invoice->installments()->create([
+                            'installment_number' => $number,
+                            'amount' => number_format(
+                                $amountCents / 100,
+                                2,
+                                '.',
+                                ''
+                            ),
+                            'due_at' => $issuedAt->copy()->addMonths(
+                                $number - 1
+                            ),
+                            'status' => 'pending',
+                        ]);
+                    }
+                }
+            }
+
+            $invoice->update($data);
+
+            return $invoice->fresh([
+                'enrollment.student:id,name',
+                'enrollment.group.course:id,title',
+                'installments',
+                'payments',
+            ]);
+        });
 
         return response()->json([
             'success' => true,
             'message' => 'Invoice updated successfully.',
-            'data' => $invoice->fresh([
-                'enrollment.student:id,name',
-                'installments',
-            ]),
+            'data' => $updatedInvoice,
         ]);
     }
 
     public function destroy(Invoice $invoice): JsonResponse
     {
-        abort_unless(
-            (float) $invoice->paid_amount === 0.0,
-            422,
-            'Paid invoices cannot be cancelled.'
-        );
+        DB::transaction(function () use ($invoice) {
+            $invoice = Invoice::query()
+                ->lockForUpdate()
+                ->findOrFail($invoice->id);
 
-        abort_unless(
-            $invoice->status === 'unpaid',
-            422,
-            'Only unpaid invoices can be cancelled.'
-        );
+            abort_unless(
+                (float) $invoice->paid_amount === 0.0,
+                422,
+                'Paid invoices cannot be cancelled.'
+            );
 
-        $hasPayments = $invoice->payments()->exists()
-            || $invoice->installments()
-                ->whereHas('payments')
-                ->exists();
+            abort_unless(
+                $invoice->status === 'unpaid',
+                422,
+                'Only unpaid invoices can be cancelled.'
+            );
 
-        abort_if(
-            $hasPayments,
-            422,
-            'Invoices with payment records cannot be cancelled.'
-        );
+            $hasPayments = $invoice->payments()->exists()
+                || $invoice->installments()
+                    ->whereHas('payments')
+                    ->exists();
 
-        $invoice->delete();
+            abort_if(
+                $hasPayments,
+                422,
+                'Invoices with payment records cannot be cancelled.'
+            );
+
+            $invoice->delete();
+        });
 
         return response()->json([
             'success' => true,

@@ -16,9 +16,9 @@ class PaymentService
         int $recordedBy
     ): Payment {
         return DB::transaction(function () use ($invoice, $data, $recordedBy) {
-            $lockedInvoice = Invoice::whereKey($invoice->id)
+            $lockedInvoice = Invoice::query()
                 ->lockForUpdate()
-                ->firstOrFail();
+                ->findOrFail($invoice->id);
 
             $amountInCents = (int) round(
                 (float) $data['amount'] * 100
@@ -29,7 +29,8 @@ class PaymentService
             );
 
             $paidInCents = (int) round(
-                (float) Payment::where('invoice_id', $lockedInvoice->id)
+                (float) Payment::query()
+                    ->where('invoice_id', $lockedInvoice->id)
                     ->where('status', 'confirmed')
                     ->sum('amount') * 100
             );
@@ -43,6 +44,8 @@ class PaymentService
             }
 
             $installment = null;
+            $installmentPaidInCents = 0;
+            $installmentTotalInCents = 0;
 
             if ($lockedInvoice->payment_plan === 'monthly') {
                 if (empty($data['payment_installment_id'])) {
@@ -53,9 +56,8 @@ class PaymentService
                     ]);
                 }
 
-                $installment = PaymentInstallment::whereKey(
-                    $data['payment_installment_id']
-                )
+                $installment = PaymentInstallment::query()
+                    ->whereKey($data['payment_installment_id'])
                     ->where('invoice_id', $lockedInvoice->id)
                     ->lockForUpdate()
                     ->first();
@@ -69,8 +71,12 @@ class PaymentService
                 }
 
                 $installmentPaidInCents = (int) round(
-                    (float) Payment::where('invoice_id', $lockedInvoice->id)
-                        ->where('payment_installment_id', $installment->id)
+                    (float) Payment::query()
+                        ->where('invoice_id', $lockedInvoice->id)
+                        ->where(
+                            'payment_installment_id',
+                            $installment->id
+                        )
                         ->where('status', 'confirmed')
                         ->sum('amount') * 100
                 );
@@ -80,8 +86,8 @@ class PaymentService
                 );
 
                 if (
-                    $installmentPaidInCents + $amountInCents >
-                    $installmentTotalInCents
+                    $installmentPaidInCents + $amountInCents
+                    > $installmentTotalInCents
                 ) {
                     throw ValidationException::withMessages([
                         'amount' => [
@@ -101,38 +107,45 @@ class PaymentService
                 'invoice_id' => $lockedInvoice->id,
                 'payment_installment_id' => $installment?->id,
                 'recorded_by' => $recordedBy,
-                'transaction_reference' => $data['transaction_reference'] ?? null,
+                'transaction_reference' =>
+                    $data['transaction_reference'] ?? null,
                 'amount' => $data['amount'],
                 'currency' => $lockedInvoice->currency,
                 'payment_method' => $data['payment_method'],
                 'status' => 'confirmed',
                 'receipt_url' => $data['receipt_url'] ?? null,
-                'paid_at' => now(),
+                'paid_at' => $data['paid_at'] ?? now(),
                 'notes' => $data['notes'] ?? null,
             ]);
 
             $newPaidInCents = $paidInCents + $amountInCents;
 
             $lockedInvoice->update([
-                'paid_amount' => $newPaidInCents / 100,
-                'status' => $newPaidInCents >= $totalInCents
-                    ? 'paid'
-                    : 'partially_paid',
+                'paid_amount' => number_format(
+                    $newPaidInCents / 100,
+                    2,
+                    '.',
+                    ''
+                ),
+                'status' => match (true) {
+                    $newPaidInCents >= $totalInCents => 'paid',
+                    $newPaidInCents > 0 => 'partially_paid',
+                    default => 'unpaid',
+                },
             ]);
 
             if ($installment) {
                 $newInstallmentPaidInCents =
                     $installmentPaidInCents + $amountInCents;
 
-                $installmentTotalInCents = (int) round(
-                    (float) $installment->amount * 100
-                );
-
                 $installment->update([
-                    'status' => $newInstallmentPaidInCents >= $installmentTotalInCents
-                        ? 'paid'
-                        : 'partially_paid',
-                    'paid_at' => $newInstallmentPaidInCents >= $installmentTotalInCents
+                    'status' => match (true) {
+                        $newInstallmentPaidInCents >= $installmentTotalInCents => 'paid',
+                        $newInstallmentPaidInCents > 0 => 'partially_paid',
+                        default => 'pending',
+                    },
+                    'paid_at' =>
+                        $newInstallmentPaidInCents >= $installmentTotalInCents
                         ? now()->toDateString()
                         : null,
                 ]);

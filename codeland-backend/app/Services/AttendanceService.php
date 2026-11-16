@@ -77,12 +77,18 @@ class AttendanceService
             return 'present';
         }
 
-        if ($checks->count() < 3) {
+        $recordedChecks = $checks
+            ->pluck('check_number')
+            ->unique();
+
+        if ($recordedChecks->count() < 3) {
             return 'pending';
         }
 
         return 'absent';
     }
+
+
 
     public function recordAttendance(
         ClassSession $session,
@@ -97,7 +103,18 @@ class AttendanceService
         }
 
         DB::transaction(function () use ($session, $students, $checkNumber, $markedBy) {
-            $activeStudentIds = $session->group
+            // Lock the session to prevent concurrent attendance writes.
+            $lockedSession = ClassSession::whereKey($session->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedSession->status !== 'scheduled') {
+                throw new \InvalidArgumentException(
+                    'Attendance can only be recorded for scheduled sessions.'
+                );
+            }
+
+            $activeStudentIds = $lockedSession->group
                 ->enrollments()
                 ->where('status', 'active')
                 ->pluck('student_id')
@@ -122,7 +139,19 @@ class AttendanceService
                     );
                 }
 
-                $session->attendances()->updateOrCreate(
+                if (
+                    !in_array(
+                        $studentData['is_present'],
+                        [true, false, 0, 1, '0', '1'],
+                        true
+                    )
+                ) {
+                    throw new \InvalidArgumentException(
+                        'Attendance status must be a valid boolean value.'
+                    );
+                }
+
+                $lockedSession->attendances()->updateOrCreate(
                     [
                         'student_id' => $studentId,
                         'check_number' => $checkNumber,
