@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "@fontsource/cairo/400.css";
+@import "@fontsource/cairo/500.css";
+@import "@fontsource/cairo/600.css";
+@import "@fontsource/cairo/700.css";
+
+:root {
+  color-scheme: light;
+
+  --color-primary: #032650;
+  --color-secondary: #259b2b;
+  --color-background: #fff8ee;
+  --color-surface: #ffffff;
+  --color-text: #032650;
+  --color-muted: #64748b;
+  --color-border: #e2e8f0;
+}
+
+html.dark {
+  color-scheme: dark;
+
+  --color-primary: #032650;
+  --color-secondary: #4ade80;
+  --color-background: #111827;
+  --color-surface: #1f2937;
+  --color-text: #f8fafc;
+  --color-muted: #9ca3af;
+  --color-border: #374151;
+}
+
+@layer base {
+  html {
+    font-family: "Cairo", sans-serif;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    transition:
+      background-color 200ms ease,
+      color 200ms ease;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-toast-in {
+  animation: toast-in 0.25s ease-out;
+}

@@ -1,0 +1,344 @@
+<div
+  class="login-page min-h-screen flex items-center justify-center p-4 sm:p-6"
+>
+  <div
+    class="login-shell w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 overflow-hidden rounded-[2rem]"
+  >
+    <!-- Brand Section -->
+    <section
+      class="brand-panel hidden lg:flex flex-col justify-between p-10 xl:p-12 text-white"
+    >
+      <div>
+        <img
+          src="/logo2.png"
+          alt="Codeland Academy"
+          class="w-48 h-auto object-contain"
+        />
+      </div>
+
+      <div class="my-12">
+        <span
+          class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white/90"
+        >
+          <span class="h-2 w-2 rounded-full bg-green-300"></span>
+          {{ "auth.brand_tagline" | translate }}
+        </span>
+
+        <h1 class="mt-7 text-4xl xl:text-5xl font-extrabold leading-tight">
+          {{ "auth.hero_title" | translate }}
+          <span class="block text-green-300">
+            {{ "auth.hero_highlight" | translate }}
+          </span>
+        </h1>
+
+        <p class="mt-6 max-w-md text-base leading-8 text-white/75">
+          {{ "auth.hero_description" | translate }}
+        </p>
+      </div>
+
+      <div
+        class="flex items-center justify-between border-t border-white/15 pt-6 text-sm text-white/60"
+      >
+        <span>© {{ currentYear }} Codeland Academy</span>
+        <span>{{ "auth.empowering" | translate }}</span>
+      </div>
+    </section>
+
+    <!-- Login Section -->
+    <section
+      class="login-panel flex flex-col justify-center px-6 py-10 sm:px-10 lg:px-12 xl:px-16"
+    >
+      <!-- Appearance Controls -->
+      <div class="mb-8 flex items-center justify-end gap-3">
+        <!-- Language Toggle -->
+        <button
+          type="button"
+          (click)="toggleLanguage()"
+          class="appearance-button"
+          [attr.aria-label]="
+            languageService.isArabic
+              ? 'Switch to English'
+              : 'التبديل إلى العربية'
+          "
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="19"
+            height="19"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M2 12h20" />
+            <path
+              d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z"
+            />
+          </svg>
+
+          <span>
+            {{ languageService.isArabic ? "EN" : "عربي" }}
+          </span>
+        </button>
+
+        <!-- Theme Toggle -->
+        <button
+          type="button"
+          (click)="toggleTheme()"
+          class="appearance-icon-button"
+          [attr.aria-label]="
+            (themeService.isDark
+              ? 'auth.switch_to_light'
+              : 'auth.switch_to_dark'
+            ) | translate
+          "
+        >
+          @if (themeService.isDark) {
+            <!-- Sun -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="4" />
+              <path
+                d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"
+              />
+            </svg>
+          } @else {
+            <!-- Moon -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z" />
+            </svg>
+          }
+        </button>
+      </div>
+
+      <div class="mb-9 text-center lg:text-start">
+        <img
+          src="/logo2.png"
+          alt="Codeland Academy"
+          class="mx-auto mb-6 h-auto w-36 object-contain lg:hidden"
+        />
+
+        <span
+          class="text-sm font-bold uppercase tracking-[0.2em] text-brand-green"
+        >
+          Codeland Academy
+        </span>
+
+        <h2
+          class="mt-3 text-3xl font-extrabold tracking-tight text-brand-navy sm:text-4xl"
+        >
+          {{ "auth.welcome_back" | translate }}
+        </h2>
+
+        <p class="mt-3 text-sm leading-6 text-gray-500">
+          {{ "auth.sign_in_description" | translate }}
+        </p>
+      </div>
+
+      <form [formGroup]="loginForm" (ngSubmit)="login()" class="space-y-5">
+        <!-- Account Type -->
+        <div>
+          <label
+            for="type"
+            class="mb-2 block text-sm font-semibold text-gray-700"
+          >
+            {{ "auth.fields.account_type" | translate }}
+          </label>
+
+          <select
+            id="type"
+            formControlName="type"
+            (change)="onAccountTypeChange()"
+            class="login-input"
+          >
+            @for (account of accountTypes; track account.value) {
+              <option [value]="account.value">
+                {{ account.labelKey | translate }}
+              </option>
+            }
+          </select>
+        </div>
+
+        <!-- Email -->
+        <div>
+          <label
+            for="email"
+            class="mb-2 block text-sm font-semibold text-gray-700"
+          >
+            {{ "auth.fields.email" | translate }}
+          </label>
+
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            [placeholder]="'auth.placeholders.email' | translate"
+            autocomplete="email"
+            dir="ltr"
+            class="login-input"
+          />
+
+          @if (
+            loginForm.controls.email.touched && loginForm.controls.email.invalid
+          ) {
+            <p class="mt-2 text-xs font-medium text-red-600">
+              @if (loginForm.controls.email.hasError("required")) {
+                {{ "auth.errors.required" | translate }}
+              } @else if (loginForm.controls.email.hasError("email")) {
+                {{ "auth.errors.invalid_email" | translate }}
+              }
+            </p>
+          }
+        </div>
+
+        <!-- Password -->
+        <div>
+          <label
+            for="password"
+            class="mb-2 block text-sm font-semibold text-gray-700"
+          >
+            {{ "auth.fields.password" | translate }}
+          </label>
+
+          <div class="relative">
+            <input
+              id="password"
+              [type]="showPassword() ? 'text' : 'password'"
+              formControlName="password"
+              autocomplete="current-password"
+              [placeholder]="'auth.placeholders.password' | translate"
+              class="login-input pr-16"
+            />
+
+            <button
+              type="button"
+              (click)="togglePasswordVisibility()"
+              class="absolute inset-y-0 right-3 flex items-center justify-center text-gray-400 transition-colors hover:text-brand-green"
+              [attr.aria-label]="
+                (showPassword() ? 'auth.hide_password' : 'auth.show_password')
+                  | translate
+              "
+            >
+              @if (showPassword()) {
+                <!-- Eye Off -->
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="21"
+                  height="21"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M3 3l18 18" />
+                  <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                  <path
+                    d="M9.9 5.2A10.8 10.8 0 0 1 12 5c5 0 8.3 4.5 9 7-.3 1.1-1 2.2-2 3.2"
+                  />
+                  <path
+                    d="M6.2 6.2C4 7.5 2.5 9.5 2 12c.7 2.5 4 7 10 7 1.1 0 2.1-.2 3-.5"
+                  />
+                </svg>
+              } @else {
+                <!-- Eye -->
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="21"
+                  height="21"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              }
+            </button>
+          </div>
+
+          @if (
+            loginForm.controls.password.touched &&
+            loginForm.controls.password.invalid
+          ) {
+            <p class="mt-2 text-xs font-medium text-red-600">
+              {{ "auth.errors.password_required" | translate }}
+            </p>
+          }
+        </div>
+
+        <!-- Error -->
+        @if (errorMessage()) {
+          <div
+            class="flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700"
+          >
+            <span class="font-bold">!</span>
+            <p>
+              @if (errorMessageIsTranslation()) {
+                {{ errorMessage() | translate }}
+              } @else {
+                {{ errorMessage() }}
+              }
+            </p>
+          </div>
+        }
+
+        <!-- Submit -->
+        <button
+          type="submit"
+          [disabled]="isLoading()"
+          class="login-button group flex w-full items-center justify-center gap-3 rounded-xl px-5 py-4 font-bold text-white transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          @if (isLoading()) {
+            <span class="loading-spinner"></span>
+            <span>{{ "auth.signing_in" | translate }}</span>
+          } @else {
+            <span>{{ "auth.sign_in" | translate }}</span>
+            <span
+              class="text-lg transition-transform group-hover:translate-x-1"
+            >
+              →
+            </span>
+          }
+        </button>
+      </form>
+
+      <div class="mt-8 border-t border-gray-100 pt-6 text-center">
+        <p class="text-xs leading-6 text-gray-400">
+          {{ "auth.security_note" | translate }}
+        </p>
+
+        <p class="mt-3 text-xs text-gray-400">
+          © {{ currentYear }} Codeland Academy.
+          {{ "auth.all_rights_reserved" | translate }}
+        </p>
+      </div>
+    </section>
+  </div>
+</div>

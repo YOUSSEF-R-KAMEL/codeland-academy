@@ -39,16 +39,18 @@ class AdminFinancialSummaryController extends Controller
                 COUNT(*) as total_invoices,
                 COALESCE(SUM(total_amount), 0) as total_amount,
                 COALESCE(SUM(paid_amount), 0) as paid_amount,
-                COALESCE(SUM(total_amount - paid_amount), 0) as remaining_amount,
+                COALESCE(SUM(GREATEST(total_amount - paid_amount, 0)), 0) as remaining_amount,
                 COALESCE(AVG(total_amount), 0) as average_invoice_amount,
                 COALESCE(AVG(paid_amount), 0) as average_paid_amount
             ')
             ->selectRaw("
                 SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as paid_invoices_count,
-                SUM(CASE WHEN status != 'paid' THEN 1 ELSE 0 END) as unpaid_invoices_count,
+                SUM(CASE WHEN status = 'unpaid' THEN 1 ELSE 0 END) as unpaid_invoices_count,
+                SUM(CASE WHEN status = 'partially_paid' THEN 1 ELSE 0 END) as partially_paid_invoices_count,
                 SUM(
                     CASE
-                        WHEN due_at < ? AND paid_amount < total_amount
+                        WHEN due_at < ?
+                        AND paid_amount < total_amount
                         THEN 1 ELSE 0
                     END
                 ) as overdue_invoices_count
@@ -179,12 +181,32 @@ class AdminFinancialSummaryController extends Controller
                 ),
             ]);
 
+
         $overdueInstallments = PaymentInstallment::query()
-            ->whereNotNull('due_at')
+            ->whereHas('invoice', function ($query) use ($request) {
+                $query
+                    ->when(
+                        $request->filled('from'),
+                        fn($q) => $q->whereDate(
+                            'issued_at',
+                            '>=',
+                            $request->input('from')
+                        )
+                    )
+                    ->when(
+                        $request->filled('to'),
+                        fn($q) => $q->whereDate(
+                            'issued_at',
+                            '<=',
+                            $request->input('to')
+                        )
+                    );
+            })
             ->whereDate('due_at', '<', now()->toDateString())
             ->where('status', '!=', 'paid')
             ->with('payments')
-            ->get();
+            ->get()
+            ->filter(fn($installment) => (float) $installment->remaining_amount > 0);
 
         $overdueInstallmentsSummary = [
             'count' => $overdueInstallments->count(),
@@ -197,6 +219,7 @@ class AdminFinancialSummaryController extends Controller
                 ''
             ),
         ];
+
 
         return response()->json([
             'success' => true,
@@ -234,6 +257,7 @@ class AdminFinancialSummaryController extends Controller
                 ),
                 'paid_invoices_count' => (int) $summary->paid_invoices_count,
                 'unpaid_invoices_count' => (int) $summary->unpaid_invoices_count,
+                'partially_paid_invoices_count' => (int) $summary->partially_paid_invoices_count,
                 'overdue_invoices_count' => (int) $summary->overdue_invoices_count,
                 'payments_by_method' => $paymentsByMethod,
                 'payments_by_month' => $paymentsByMonth,

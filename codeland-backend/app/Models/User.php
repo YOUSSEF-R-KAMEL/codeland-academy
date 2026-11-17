@@ -66,34 +66,13 @@ class User extends Authenticatable
             ->exists();
     }
 
-    public function children(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            User::class,
-            'parent_student',
-            'parent_id',
-            'student_id'
-        )
-            ->withPivot([
-                'relationship',
-                'is_primary_contact',
-            ])
-            ->withTimestamps();
-    }
 
-    public function parents(): BelongsToMany
+
+
+
+    public function enrollments(): HasMany
     {
-        return $this->belongsToMany(
-            User::class,
-            'parent_student',
-            'student_id',
-            'parent_id'
-        )
-            ->withPivot([
-                'relationship',
-                'is_primary_contact',
-            ])
-            ->withTimestamps();
+        return $this->hasMany(Enrollment::class, 'student_id');
     }
 
     public function attendances(): HasMany
@@ -167,10 +146,6 @@ class User extends Authenticatable
         return $this->hasMany(StudentConsent::class, 'student_id');
     }
 
-    public function parentConsents(): HasMany
-    {
-        return $this->hasMany(StudentConsent::class, 'parent_id');
-    }
 
     public function createdAnnouncements(): HasMany
     {

@@ -10,22 +10,16 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends ApiController
 {
+
     public function login(LoginRequest $request): JsonResponse
     {
         $data = $request->validated();
 
         $type = $data['type'];
-        $identifier = $data['identifier'];
-
-        $identifierColumn = match ($type) {
-            'admin', 'instructor' => 'email',
-            'parent' => 'phone',
-            'student' => 'username',
-        };
-
+        $email = $data['email'];
         $user = User::query()
             ->with('roles:id,name,slug')
-            ->where($identifierColumn, $identifier)
+            ->where('email', $email)
             ->whereHas('roles', function ($query) use ($type) {
                 $query->where('slug', $type);
             })
@@ -63,6 +57,7 @@ class AuthController extends ApiController
             ]
         );
     }
+
 
     public function logout(Request $request): JsonResponse
     {

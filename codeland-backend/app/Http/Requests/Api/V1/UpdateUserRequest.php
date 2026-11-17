@@ -64,18 +64,6 @@ class UpdateUserRequest extends FormRequest
             ];
         }
 
-        if ($role === 'parent') {
-            $rules['phone'] = [
-                'sometimes',
-                'required',
-                'string',
-                'max:20',
-                Rule::unique('users', 'phone')->ignore($userId),
-                Rule::unique('users', 'email')->ignore($userId),
-                Rule::unique('users', 'username')->ignore($userId),
-            ];
-        }
-
         return $rules;
     }
 }

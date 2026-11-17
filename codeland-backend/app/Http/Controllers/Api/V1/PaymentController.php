@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
@@ -114,6 +115,7 @@ class PaymentController extends Controller
             'invoice.enrollment.student:id,name',
             'installment',
             'recordedBy:id,name',
+            'logs.user:id,name',
         ]);
 
         return response()->json([
@@ -169,6 +171,11 @@ class PaymentController extends Controller
                 'url:http,https',
                 'max:2048',
             ],
+            'status' => [
+                'sometimes',
+                'string',
+                Rule::in(['pending', 'confirmed']),
+            ],
             'paid_at' => [
                 'sometimes',
                 'nullable',
@@ -181,9 +188,7 @@ class PaymentController extends Controller
             ],
         ]);
 
-        $invoice = \App\Models\Invoice::findOrFail(
-            $data['invoice_id']
-        );
+        $invoice = Invoice::findOrFail($data['invoice_id']);
 
         $payment = $paymentService->recordPayment(
             $invoice,
@@ -198,7 +203,85 @@ class PaymentController extends Controller
                 'invoice.enrollment.student:id,name',
                 'installment',
                 'recordedBy:id,name',
+                'logs.user:id,name',
             ]),
         ], 201);
+    }
+
+    public function confirm(
+        Request $request,
+        Payment $payment,
+        PaymentService $paymentService
+    ): JsonResponse {
+        abort_unless($request->user()->hasRole('admin'), 403);
+
+        $payment = $paymentService->confirmPayment(
+            $payment,
+            $request->user()->id
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment confirmed successfully.',
+            'data' => $payment->load('logs.user:id,name'),
+        ]);
+    }
+
+    public function reject(
+        Request $request,
+        Payment $payment,
+        PaymentService $paymentService
+    ): JsonResponse {
+        abort_unless($request->user()->hasRole('admin'), 403);
+
+        $data = $request->validate([
+            'reason' => [
+                'required',
+                'string',
+                'min:3',
+                'max:1000',
+            ],
+        ]);
+
+        $payment = $paymentService->rejectPayment(
+            $payment,
+            $request->user()->id,
+            $data['reason']
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment rejected successfully.',
+            'data' => $payment->load('logs.user:id,name'),
+        ]);
+    }
+
+    public function refund(
+        Request $request,
+        Payment $payment,
+        PaymentService $paymentService
+    ): JsonResponse {
+        abort_unless($request->user()->hasRole('admin'), 403);
+
+        $data = $request->validate([
+            'reason' => [
+                'required',
+                'string',
+                'min:3',
+                'max:1000',
+            ],
+        ]);
+
+        $payment = $paymentService->refundPayment(
+            $payment,
+            $request->user()->id,
+            $data['reason']
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment refunded successfully.',
+            'data' => $payment->load('logs.user:id,name'),
+        ]);
     }
 }

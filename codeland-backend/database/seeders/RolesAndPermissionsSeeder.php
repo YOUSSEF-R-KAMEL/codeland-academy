@@ -30,9 +30,6 @@ class RolesAndPermissionsSeeder extends Seeder
                 'manage_projects' => 'Manage Projects',
                 'view_progress' => 'View Progress',
                 'ask_questions' => 'Ask Questions',
-                'view_child_progress' => 'View Child Progress',
-                'view_child_payments' => 'View Child Payments',
-                'view_child_attendance' => 'View Child Attendance',
                 'view_payments' => 'View Payments',
             ];
 
@@ -77,16 +74,6 @@ class RolesAndPermissionsSeeder extends Seeder
                         'view_progress',
                         'ask_questions',
                         'view_payments',
-                    ],
-                ],
-
-                'parent' => [
-                    'name' => 'Parent',
-                    'permissions' => [
-                        'view_child_progress',
-                        'view_child_payments',
-                        'view_child_attendance',
-                        'ask_questions',
                     ],
                 ],
             ];

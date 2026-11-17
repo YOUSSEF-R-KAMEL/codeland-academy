@@ -9,7 +9,8 @@ class StudentConsent extends Model
 {
     protected $fillable = [
         'student_id',
-        'parent_id',
+        'consenter_name',
+        'consenter_contact',
         'consent_type',
         'status',
         'consented_at',
@@ -29,10 +30,5 @@ class StudentConsent extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(User::class, 'student_id');
-    }
-
-    public function parent(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'parent_id');
     }
 }

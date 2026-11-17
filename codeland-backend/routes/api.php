@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\AdminReportsController;
 use App\Http\Controllers\Api\V1\AdminFinancialSummaryController;
 use App\Http\Controllers\Api\V1\AdminInvoiceController;
 use App\Http\Controllers\Api\V1\AssignmentController;
@@ -262,25 +263,6 @@ Route::prefix('v1')->group(function () {
                     ->name('show');
             });
 
-        /*
-        |--------------------------------------------------------------------------
-        | Parent Invoices
-        |--------------------------------------------------------------------------
-        */
-
-        Route::middleware([
-            'role:parent',
-            'permission:view_child_payments',
-        ])->prefix('parent/invoices')
-            ->name('api.v1.parent.invoices.')
-            ->group(function () {
-
-                Route::get('/', [StudentInvoiceController::class, 'index'])
-                    ->name('index');
-
-                Route::get('/{invoice}', [StudentInvoiceController::class, 'show'])
-                    ->name('show');
-            });
 
         /*
         |--------------------------------------------------------------------------
@@ -296,11 +278,6 @@ Route::prefix('v1')->group(function () {
             Route::post('/users', [UserController::class, 'store'])
                 ->name('api.v1.admin.users.store');
 
-            Route::post(
-                '/students-with-parent',
-                [UserController::class, 'storeStudentWithParent']
-            )->name('api.v1.admin.students.store-with-parent');
-
             Route::get('/users', [UserController::class, 'index'])
                 ->name('api.v1.admin.users.index');
 
@@ -315,21 +292,6 @@ Route::prefix('v1')->group(function () {
             Route::patch('/users/{id}/status', [UserController::class, 'updateStatus'])
                 ->whereNumber('id')
                 ->name('api.v1.admin.users.update-status');
-
-            Route::post(
-                '/students/{studentId}/parents',
-                [UserController::class, 'attachParent']
-            )
-                ->whereNumber('studentId')
-                ->name('api.v1.admin.students.attach-parent');
-
-            Route::delete(
-                '/students/{studentId}/parents/{parentId}',
-                [UserController::class, 'detachParent']
-            )
-                ->whereNumber('studentId')
-                ->whereNumber('parentId')
-                ->name('api.v1.admin.students.detach-parent');
         });
 
         /*
@@ -345,6 +307,9 @@ Route::prefix('v1')->group(function () {
             ->name('api.v1.admin.courses.')
             ->group(function () {
 
+                Route::get('/', [CourseController::class, 'adminIndex'])
+                    ->name('index');
+
                 Route::post('/', [CourseController::class, 'store'])
                     ->name('store');
 
@@ -354,7 +319,6 @@ Route::prefix('v1')->group(function () {
                 Route::delete('/{course}', [CourseController::class, 'destroy'])
                     ->name('destroy');
             });
-
         /*
         |--------------------------------------------------------------------------
         | Course Lesson Management
@@ -439,10 +403,10 @@ Route::prefix('v1')->group(function () {
         Route::middleware([
             'role:admin',
             'permission:manage_groups',
+
         ])->prefix('admin/courses/{course}')
             ->name('api.v1.admin.courses.groups.')
             ->group(function () {
-
                 Route::get('/groups', [GroupController::class, 'index'])
                     ->name('index');
 
@@ -673,23 +637,6 @@ Route::prefix('v1')->group(function () {
 
                 Route::get('/{payment}', [PaymentController::class, 'show'])
                     ->name('show');
-            });
-
-        Route::middleware([
-            'role:admin',
-            'permission:manage_payments',
-        ])->prefix('admin/payments')
-            ->name('api.v1.admin.payments.')
-            ->group(function () {
-
-                Route::get('/', [PaymentController::class, 'index'])
-                    ->name('index');
-
-                Route::post('/', [PaymentController::class, 'store'])
-                    ->name('store');
-
-                Route::get('/{payment}', [PaymentController::class, 'show'])
-                    ->name('show');
 
                 Route::patch('/{payment}/confirm', [PaymentController::class, 'confirm'])
                     ->name('confirm');
@@ -713,5 +660,33 @@ Route::prefix('v1')->group(function () {
             'permission:manage_payments',
         ])->get('/admin/financial-summary', AdminFinancialSummaryController::class)
             ->name('api.v1.admin.financial-summary');
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Reports
+        |--------------------------------------------------------------------------
+        */
+
+        Route::middleware([
+            'role:admin',
+            'permission:manage_payments',
+        ])->prefix('admin/reports')
+            ->name('api.v1.admin.reports.')
+            ->group(function () {
+
+                Route::get('/payments', [
+                    AdminReportsController::class,
+                    'paymentsReport',
+                ])->name('payments');
+
+                Route::get('/invoices', [
+                    AdminReportsController::class,
+                    'invoicesReport',
+                ])->name('invoices');
+
+                Route::get('/outstanding', [
+                    AdminReportsController::class,
+                    'outstandingReport',
+                ])->name('outstanding');
+            });
     });
 });

@@ -14,10 +14,6 @@ class StoreUserRequest extends FormRequest
 
     public function rules(): array
     {
-        $role = $this->input('role');
-
-        $isEmailRole = in_array($role, ['admin', 'instructor'], true);
-
         return [
             'name' => [
                 'required',
@@ -28,49 +24,26 @@ class StoreUserRequest extends FormRequest
             'role' => [
                 'required',
                 'string',
-                Rule::in(['admin', 'instructor', 'student', 'parent']),
+                Rule::in(['admin', 'instructor', 'student']),
             ],
 
             'email' => [
-                Rule::requiredIf($isEmailRole),
-                Rule::prohibitedIf(!$isEmailRole),
-                'nullable',
+                'required',
                 'email',
                 'max:255',
                 Rule::unique('users', 'email'),
-                Rule::unique('users', 'phone'),
-                Rule::unique('users', 'username'),
-            ],
-
-            'username' => [
-                Rule::requiredIf($role === 'student'),
-                Rule::prohibitedIf($role !== 'student'),
-                'nullable',
-                'string',
-                'min:3',
-                'max:50',
-                'alpha_dash',
-                Rule::unique('users', 'username'),
-                Rule::unique('users', 'email'),
-                Rule::unique('users', 'phone'),
             ],
 
             'phone' => [
-                Rule::requiredIf($role === 'parent'),
-                Rule::prohibitedIf($role !== 'parent'),
                 'nullable',
                 'string',
                 'max:20',
-                Rule::unique('users', 'phone'),
-                Rule::unique('users', 'email'),
-                Rule::unique('users', 'username'),
             ],
 
             'password' => [
                 'required',
                 'string',
                 'min:8',
-                'confirmed',
             ],
         ];
     }

@@ -20,13 +20,18 @@ class StudentAssignmentSubmissionController extends Controller
 
         abort_unless($student->hasRole('student'), 403);
 
+        $lesson = $assignment->courseLesson;
+
         abort_unless(
             $assignment->is_published
             && $assignment->published_at
-            && $assignment->published_at->lte(now()),
+            && $assignment->published_at->lte(now())
+            && $lesson
+            && $lesson->is_published
+            && $lesson->published_at
+            && $lesson->published_at->lte(now()),
             404
         );
-
         $hasEnrollment = Enrollment::query()
             ->where('student_id', $student->id)
             ->where('status', 'active')

@@ -36,7 +36,25 @@ class CourseController extends ApiController
             ]
         );
     }
+    public function adminIndex()
+    {
+        $courses = Course::query()
+            ->orderBy('sort_order')
+            ->orderBy('title')
+            ->get([
+                'id',
+                'title',
+                'slug',
+                'is_published',
+            ]);
 
+        return $this->success(
+            'تم جلب الكورسات بنجاح.',
+            [
+                'courses' => $courses,
+            ]
+        );
+    }
     public function show(string $slug)
     {
         $course = Course::query()

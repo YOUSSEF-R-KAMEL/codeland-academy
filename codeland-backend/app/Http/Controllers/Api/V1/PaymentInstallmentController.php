@@ -225,6 +225,8 @@ class PaymentInstallmentController extends Controller
         ]);
     }
 
+
+
     public function destroy(
         Invoice $invoice,
         PaymentInstallment $installment
@@ -245,23 +247,78 @@ class PaymentInstallmentController extends Controller
                 'Installments are only allowed for monthly invoices.'
             );
 
-            $lockedInstallment = PaymentInstallment::query()
+            $installments = PaymentInstallment::query()
                 ->where('invoice_id', $lockedInvoice->id)
+                ->orderBy('installment_number')
                 ->lockForUpdate()
-                ->findOrFail($installment->id);
+                ->get();
+
+            $target = $installments->firstWhere('id', $installment->id);
+
+            abort_if(!$target, 404);
 
             abort_if(
-                $lockedInstallment->payments()->exists(),
+                $target->payments()->exists(),
                 422,
                 'Installments with payment records cannot be deleted.'
             );
 
-            $lockedInstallment->delete();
+            abort_if(
+                $installments->count() <= 1,
+                422,
+                'An invoice must have at least one installment.'
+            );
+
+            // Prefer the next installment, otherwise use the previous one.
+            $recipient = $installments
+                ->first(
+                    fn($item) =>
+                        $item->installment_number > $target->installment_number
+                        && !$item->payments()->exists()
+                );
+
+            if (!$recipient) {
+                $recipient = $installments
+                    ->filter(
+                        fn($item) =>
+                            $item->installment_number < $target->installment_number
+                            && !$item->payments()->exists()
+                    )
+                    ->last();
+            }
+
+            abort_if(
+                !$recipient,
+                422,
+                'No available installment to receive the deleted amount.'
+            );
+
+            $targetCents = (int) round((float) $target->amount * 100);
+            $recipientCents = (int) round((float) $recipient->amount * 100);
+
+            $targetNumber = $target->installment_number;
+
+            $target->delete();
+
+            $recipient->update([
+                'amount' => number_format(
+                    ($targetCents + $recipientCents) / 100,
+                    2,
+                    '.',
+                    ''
+                ),
+                'installment_number' => min(
+                    $targetNumber,
+                    $recipient->installment_number
+                ),
+            ]);
         });
 
         return response()->json([
             'success' => true,
-            'message' => 'Installment deleted successfully.',
+            'message' => 'Installment deleted and amount redistributed successfully.',
         ]);
     }
+
+
 }

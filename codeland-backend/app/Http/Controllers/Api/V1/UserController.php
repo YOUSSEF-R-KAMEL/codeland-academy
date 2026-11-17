@@ -2,16 +2,14 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Http\Requests\Api\V1\StoreStudentWithParentRequest;
 use App\Http\Requests\Api\V1\StoreUserRequest;
 use App\Http\Requests\Api\V1\UpdateUserRequest;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\StudentAccountService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Http\Requests\Api\V1\AttachParentRequest;
+
 class UserController extends ApiController
 {
     public function index(Request $request): JsonResponse
@@ -26,6 +24,14 @@ class UserController extends ApiController
         $query = User::query()
             ->with('roles:id,name,slug')
             ->latest();
+
+        if (($filters['role'] ?? null) === 'student') {
+            $query->with([
+                'enrollments' => fn($builder) => $builder
+                    ->with('group:id,course_id,name,code')
+                    ->orderByDesc('enrolled_at'),
+            ]);
+        }
 
         if (!empty($filters['search'])) {
             $search = $filters['search'];
@@ -54,8 +60,35 @@ class UserController extends ApiController
             'تم جلب المستخدمين بنجاح.',
             [
                 'users' => $users->getCollection()
-                    ->map(fn(User $user) => $this->formatUser($user))
+                    ->map(function (User $user) use ($filters) {
+                        $data = $this->formatUser($user);
+
+                        if (($filters['role'] ?? null) === 'student') {
+                            $enrollment = $user->enrollments->first(
+                                fn($item) => in_array(
+                                    $item->status,
+                                    ['active', 'pending'],
+                                    true
+                                )
+                            );
+
+                            $data['enrollment'] = $enrollment ? [
+                                'id' => $enrollment->id,
+                                'status' => $enrollment->status,
+                                'enrolled_at' => $enrollment->enrolled_at?->toDateString(),
+                                'group' => $enrollment->group ? [
+                                    'id' => $enrollment->group->id,
+                                    'course_id' => $enrollment->group->course_id,
+                                    'name' => $enrollment->group->name,
+                                    'code' => $enrollment->group->code,
+                                ] : null,
+                            ] : null;
+                        }
+
+                        return $data;
+                    })
                     ->values(),
+
                 'pagination' => [
                     'current_page' => $users->currentPage(),
                     'last_page' => $users->lastPage(),
@@ -75,8 +108,7 @@ class UserController extends ApiController
 
             $user = User::create([
                 'name' => $data['name'],
-                'email' => $data['email'] ?? null,
-                'username' => $data['username'] ?? null,
+                'email' => $data['email'],
                 'phone' => $data['phone'] ?? null,
                 'password' => $data['password'],
             ]);
@@ -93,63 +125,17 @@ class UserController extends ApiController
         );
     }
 
-    public function storeStudentWithParent(
-        StoreStudentWithParentRequest $request,
-        StudentAccountService $service
-    ): JsonResponse {
-        $accounts = $service->createStudentWithParent(
-            $request->validated()
-        );
-
-        return $this->success(
-            'تم إنشاء حساب الطالب وربطه بولي الأمر بنجاح.',
-            [
-                'student' => $this->formatUser($accounts['student']),
-                'parent' => $this->formatUser($accounts['parent']),
-            ],
-            201
-        );
-    }
-
-
     public function show(int $id): JsonResponse
     {
         $user = User::query()
-            ->with([
-                'roles:id,name,slug',
-                'parents:id,name,phone',
-                'children:id,name,username',
-            ])
+            ->with('roles:id,name,slug')
             ->findOrFail($id);
-
-        $userData = $this->formatUser($user);
-
-        if ($user->hasRole('student')) {
-            $userData['parents'] = $user->parents->map(fn($parent) => [
-                'id' => $parent->id,
-                'name' => $parent->name,
-                'phone' => $parent->phone,
-                'relationship' => $parent->pivot->relationship,
-                'is_primary_contact' => $parent->pivot->is_primary_contact,
-            ])->values();
-        }
-
-        if ($user->hasRole('parent')) {
-            $userData['children'] = $user->children->map(fn($child) => [
-                'id' => $child->id,
-                'name' => $child->name,
-                'username' => $child->username,
-                'relationship' => $child->pivot->relationship,
-                'is_primary_contact' => $child->pivot->is_primary_contact,
-            ])->values();
-        }
 
         return $this->success(
             'تم جلب بيانات المستخدم بنجاح.',
-            ['user' => $userData]
+            ['user' => $this->formatUser($user)]
         );
     }
-
 
     public function update(
         UpdateUserRequest $request,
@@ -245,127 +231,4 @@ class UserController extends ApiController
             ])->values(),
         ];
     }
-
-    public function attachParent(
-        AttachParentRequest $request,
-        int $studentId
-    ): JsonResponse {
-        $data = $request->validated();
-
-        $parent = User::query()
-            ->with('roles')
-            ->findOrFail($data['parent_id']);
-
-        if (!$parent->hasRole('parent')) {
-            return $this->error(
-                'الحساب المحدد ليس حساب ولي أمر.',
-                [],
-                422
-            );
-        }
-
-        DB::transaction(function () use ($studentId, $parent, $data) {
-            $student = User::query()
-                ->with('roles')
-                ->lockForUpdate()
-                ->findOrFail($studentId);
-
-            if (!$student->hasRole('student')) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'student_id' => 'الحساب المحدد ليس حساب طالب.',
-                ]);
-            }
-
-            if ($data['is_primary_contact'] ?? false) {
-                DB::table('parent_student')
-                    ->where('student_id', $student->id)
-                    ->update(['is_primary_contact' => false]);
-            }
-
-            $student->parents()->syncWithoutDetaching([
-                $parent->id => [
-                    'relationship' => $data['relationship']
-                        ?? $student->parents()
-                            ->where('users.id', $parent->id)
-                            ->first()?->pivot->relationship,
-                    'is_primary_contact' => $data['is_primary_contact'] ?? false,
-                ],
-            ]);
-        });
-
-        return $this->success(
-            'تم ربط ولي الأمر بالطالب بنجاح.',
-            [
-                'student_id' => $studentId,
-                'parent_id' => $parent->id,
-            ]
-        );
-    }
-
-
-    public function detachParent(
-        int $studentId,
-        int $parentId
-    ): JsonResponse {
-        $result = DB::transaction(function () use ($studentId, $parentId) {
-            $student = User::query()
-                ->with('roles')
-                ->lockForUpdate()
-                ->findOrFail($studentId);
-
-            $parent = User::query()
-                ->with('roles')
-                ->findOrFail($parentId);
-
-            if (!$student->hasRole('student')) {
-                return 'invalid_student';
-            }
-
-            if (!$parent->hasRole('parent')) {
-                return 'invalid_parent';
-            }
-
-            $relationship = $student->parents()
-                ->where('users.id', $parent->id)
-                ->first();
-
-            if (!$relationship) {
-                return 'not_attached';
-            }
-
-            $wasPrimary = (bool) $relationship->pivot->is_primary_contact;
-
-            $student->parents()->detach($parent->id);
-
-            if ($wasPrimary) {
-                $nextParent = $student->parents()
-                    ->orderByPivot('created_at')
-                    ->first();
-
-                if ($nextParent) {
-                    DB::table('parent_student')
-                        ->where('student_id', $student->id)
-                        ->where('parent_id', $nextParent->id)
-                        ->update(['is_primary_contact' => true]);
-                }
-            }
-
-            return 'success';
-        });
-
-        if ($result === 'invalid_student') {
-            return $this->error('الحساب المحدد ليس حساب طالب.', [], 422);
-        }
-
-        if ($result === 'invalid_parent') {
-            return $this->error('الحساب المحدد ليس حساب ولي أمر.', [], 422);
-        }
-
-        if ($result === 'not_attached') {
-            return $this->error('ولي الأمر غير مرتبط بهذا الطالب.', [], 404);
-        }
-
-        return $this->success('تم فصل ولي الأمر عن الطالب بنجاح.');
-    }
-
 }

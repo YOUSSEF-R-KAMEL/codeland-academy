@@ -21,15 +21,16 @@ class LoginRequest extends FormRequest
                 Rule::in([
                     'admin',
                     'instructor',
-                    'parent',
                     'student',
                 ]),
             ],
-            'identifier' => [
+
+            'email' => [
                 'required',
-                'string',
+                'email',
                 'max:255',
             ],
+
             'password' => [
                 'required',
                 'string',
@@ -44,7 +45,9 @@ class LoginRequest extends FormRequest
             'type.required' => 'نوع الحساب مطلوب.',
             'type.in' => 'نوع الحساب غير صحيح.',
 
-            'identifier.required' => 'بيانات تسجيل الدخول مطلوبة.',
+            'email.required' => 'البريد الإلكتروني مطلوب.',
+            'email.email' => 'البريد الإلكتروني غير صحيح.',
+
             'password.required' => 'كلمة المرور مطلوبة.',
         ];
     }

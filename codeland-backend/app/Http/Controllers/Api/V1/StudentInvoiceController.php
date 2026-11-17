@@ -13,19 +13,11 @@ class StudentInvoiceController extends Controller
     {
         $user = $request->user();
 
-        if ($user->hasRole('student')) {
-            $studentIds = [$user->id];
-        } elseif ($user->hasRole('parent')) {
-            $studentIds = $user->children()
-                ->pluck('users.id')
-                ->all();
-        } else {
-            abort(403);
-        }
+        abort_unless($user->hasRole('student'), 403);
 
         $invoices = Invoice::query()
-            ->whereHas('enrollment', function ($query) use ($studentIds) {
-                $query->whereIn('student_id', $studentIds);
+            ->whereHas('enrollment', function ($query) use ($user) {
+                $query->where('student_id', $user->id);
             })
             ->with([
                 'enrollment.student:id,name',
@@ -45,18 +37,11 @@ class StudentInvoiceController extends Controller
     {
         $user = $request->user();
 
-        $studentId = (int) $invoice->enrollment()->value('student_id');
-
-        $hasAccess = $user->hasRole('student')
-            && (int) $user->id === $studentId;
-
-        if ($user->hasRole('parent')) {
-            $hasAccess = $user->children()
-                ->where('users.id', $studentId)
-                ->exists();
-        }
-
-        abort_unless($hasAccess, 403);
+        abort_unless(
+            $user->hasRole('student')
+            && (int) $user->id === (int) $invoice->enrollment()->value('student_id'),
+            403
+        );
 
         $invoice->load([
             'enrollment.student:id,name',
