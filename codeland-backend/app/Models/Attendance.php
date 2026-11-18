@@ -11,7 +11,7 @@ class Attendance extends Model
         'class_session_id',
         'student_id',
         'check_number',
-        'status',
+        'is_present',
         'marked_at',
         'marked_by',
         'notes',
@@ -21,6 +21,7 @@ class Attendance extends Model
     {
         return [
             'check_number' => 'integer',
+            'is_present' => 'boolean',
             'marked_at' => 'datetime',
         ];
     }

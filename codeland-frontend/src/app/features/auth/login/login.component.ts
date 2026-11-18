@@ -4,10 +4,10 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { LanguageService } from '../../../../core/services/language.service';
-import { ThemeService } from '../../../../core/services/theme.service';
-import { AuthService } from '../../../../core/services/auth.service';
-import { UserRole } from '../../../../core/models/auth.model';
+import { LanguageService } from '../../../core/services/language.service';
+import { ThemeService } from '../../../core/services/theme.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { UserRole } from '../../../core/models/auth.model';
 
 @Component({
   selector: 'app-login',

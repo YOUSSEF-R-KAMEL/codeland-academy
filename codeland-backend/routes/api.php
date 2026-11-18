@@ -523,6 +523,7 @@ Route::prefix('v1')->group(function () {
                     ->name('destroy');
             });
 
+
         /*
         |--------------------------------------------------------------------------
         | Attendance Management
@@ -532,18 +533,17 @@ Route::prefix('v1')->group(function () {
         Route::middleware([
             'role:admin,instructor',
             'permission:manage_attendance',
-        ])->group(function () {
+        ])->prefix('admin/groups/{group}/sessions/{classSession}/attendance')
+            ->name('api.v1.admin.groups.sessions.attendance.')
+            ->group(function () {
 
-            Route::get(
-                '/class-sessions/{classSession}/attendance',
-                [AttendanceController::class, 'index']
-            );
+                Route::get('/', [AttendanceController::class, 'index'])
+                    ->name('index');
 
-            Route::post(
-                '/class-sessions/{classSession}/attendance',
-                [AttendanceController::class, 'store']
-            );
-        });
+                Route::post('/', [AttendanceController::class, 'store'])
+                    ->name('store');
+            });
+
 
         /*
         |--------------------------------------------------------------------------

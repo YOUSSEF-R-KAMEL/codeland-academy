@@ -45,7 +45,16 @@ class CourseController extends ApiController
                 'id',
                 'title',
                 'slug',
+                'description',
+                'thumbnail_url',
+                'duration_weeks',
+                'sessions_per_week',
+                'session_duration_minutes',
+                'full_price',
+                'monthly_price',
+                'currency',
                 'is_published',
+                'sort_order',
             ]);
 
         return $this->success(

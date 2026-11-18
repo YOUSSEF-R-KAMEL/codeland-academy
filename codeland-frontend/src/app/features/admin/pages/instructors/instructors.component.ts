@@ -11,7 +11,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-
+import { FormControl } from '@angular/forms';
 import { ToastService } from '../../../../core/services/toast.service';
 import { InstructorsService } from '../../services/instructors.service';
 
@@ -22,11 +22,12 @@ import {
   InstructorPagination,
   UpdateInstructorRequest,
 } from '../../models/instructor.model';
+import { SelectComponent } from '../../../../shared/components/select.component';
 
 @Component({
   selector: 'app-instructors',
   standalone: true,
-  imports: [TranslatePipe, ReactiveFormsModule],
+  imports: [TranslatePipe, ReactiveFormsModule, SelectComponent],
   templateUrl: './instructors.component.html',
   styleUrl: './instructors.component.scss',
 })
@@ -55,6 +56,15 @@ export class InstructorsComponent implements OnInit {
     per_page: 10,
     total: 0,
   });
+  readonly statusOptions = [
+    { value: '', label: 'instructors.all_statuses' },
+    { value: 'active', label: 'instructors.active' },
+    { value: 'inactive', label: 'instructors.inactive' },
+  ];
+
+  readonly statusControl = new FormControl('', {
+    nonNullable: true,
+  });
 
   readonly totalInstructors = computed(() => this.pagination().total);
 
@@ -76,6 +86,11 @@ export class InstructorsComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.statusControl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((status) => {
+        this.onStatusChange(status);
+      });
     this.searchSubject
       .pipe(
         debounceTime(350),

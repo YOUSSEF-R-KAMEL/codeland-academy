@@ -38,20 +38,17 @@ class StoreAttendanceRequest extends FormRequest
                 'integer',
                 'between:1,3',
             ],
-
             'students' => [
                 'required',
                 'array',
                 'min:1',
             ],
-
             'students.*.student_id' => [
                 'required',
                 'integer',
                 'distinct',
                 'exists:users,id',
             ],
-
             'students.*.is_present' => [
                 'required',
                 'boolean',

@@ -1,4 +1,4 @@
-﻿<div class="space-y-6">
+﻿<div class="modal-enter space-y-6">
   <!-- Page Header -->
   <section
     class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"
@@ -76,17 +76,14 @@
         <label class="mb-2 block text-sm font-semibold">
           {{ "instructors.status" | translate }}
         </label>
-        <select
-          [value]="selectedStatus()"
-          (change)="onStatusChange($any($event.target).value)"
-          class="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm outline-none focus:border-[#259b2b]"
-        >
-          <option value="">{{ "instructors.all_statuses" | translate }}</option>
-          <option value="active">{{ "instructors.active" | translate }}</option>
-          <option value="inactive">
-            {{ "instructors.inactive" | translate }}
-          </option>
-        </select>
+
+        <app-select
+          [options]="statusOptions"
+          [formControl]="statusControl"
+          [placeholder]="'instructors.all_statuses' | translate"
+          [translateLabels]="true"
+          inputId="instructor-status"
+        />
       </div>
     </div>
   </section>

@@ -1,0 +1,501 @@
+<div class="modal-enter space-y-6 p-6">
+  <!-- Header -->
+  <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+        {{ "courses.title" | translate }}
+      </h1>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        {{ "courses.subtitle" | translate }}
+      </p>
+    </div>
+
+    <button
+      type="button"
+      (click)="openAddModal()"
+      class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-300 ease-out hover:bg-blue-700 hover:shadow-lg active:translate-y-0 active:scale-95"
+    >
+      + {{ "courses.add" | translate }}
+    </button>
+  </div>
+
+  <!-- Statistics -->
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div
+      class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+    >
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        {{ "courses.total" | translate }}
+      </p>
+      <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+        {{ totalCourses() }}
+      </p>
+    </div>
+
+    <div
+      class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+    >
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        {{ "courses.published" | translate }}
+      </p>
+      <p class="mt-2 text-3xl font-bold text-green-600">
+        {{ publishedCourses() }}
+      </p>
+    </div>
+
+    <div
+      class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+    >
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        {{ "courses.drafts" | translate }}
+      </p>
+      <p class="mt-2 text-3xl font-bold text-amber-500">
+        {{ draftCourses() }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div
+    class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
+  >
+    <input
+      type="text"
+      [placeholder]="'courses.search' | translate"
+      [value]="searchTerm()"
+      (input)="onSearchChange($any($event.target).value)"
+      class="w-full rounded-xl border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-500 dark:border-gray-600 dark:text-white"
+    />
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="py-16 text-center text-gray-500 dark:text-gray-400">
+      {{ "courses.loading" | translate }}
+    </div>
+  }
+
+  <!-- Courses -->
+  @else {
+    @if (filteredCourses().length > 0) {
+      <div class="course-card grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+        @for (course of filteredCourses(); track course.id) {
+          <div
+            class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
+          >
+            <!-- Thumbnail -->
+            <div
+              class="flex h-44 items-center justify-center bg-gray-100 text-5xl dark:bg-gray-700"
+            >
+              📚
+            </div>
+
+            <div class="space-y-4 p-5">
+              <!-- Title and Status -->
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <h2 class="text-lg font-bold text-gray-900 dark:text-white">
+                    {{ course.title }}
+                  </h2>
+
+                  <p class="mt-1 truncate text-xs text-gray-500" dir="ltr">
+                    {{ course.slug }}
+                  </p>
+                </div>
+
+                <span
+                  class="shrink-0 rounded-full px-3 py-1 text-xs font-semibold"
+                  [class.bg-green-100]="course.is_published"
+                  [class.text-green-700]="course.is_published"
+                  [class.bg-amber-100]="!course.is_published"
+                  [class.text-amber-700]="!course.is_published"
+                >
+                  {{
+                    (course.is_published
+                      ? "courses.published_status"
+                      : "courses.draft_status"
+                    ) | translate
+                  }}
+                </span>
+              </div>
+
+              <!-- Description -->
+              <p
+                class="line-clamp-2 min-h-10 text-sm text-gray-500 dark:text-gray-400"
+              >
+                {{
+                  course.description || ("courses.no_description" | translate)
+                }}
+              </p>
+
+              <!-- Course Information -->
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div class="rounded-xl bg-gray-50 p-3 dark:bg-gray-700">
+                  <p class="text-xs text-gray-500 dark:text-gray-300">
+                    {{ "courses.duration" | translate }}
+                  </p>
+                  <p class="mt-1 font-semibold text-gray-900 dark:text-white">
+                    {{ course.duration_weeks }}
+                    {{ "courses.weeks" | translate }}
+                  </p>
+                </div>
+
+                <div class="rounded-xl bg-gray-50 p-3 dark:bg-gray-700">
+                  <p class="text-xs text-gray-500 dark:text-gray-300">
+                    {{ "courses.sessions_per_week" | translate }}
+                  </p>
+                  <p class="mt-1 font-semibold text-gray-900 dark:text-white">
+                    {{ course.sessions_per_week }}
+                  </p>
+                </div>
+
+                <div class="rounded-xl bg-gray-50 p-3 dark:bg-gray-700">
+                  <p class="text-xs text-gray-500 dark:text-gray-300">
+                    {{ "courses.full_price" | translate }}
+                  </p>
+                  <p class="mt-1 font-semibold text-gray-900 dark:text-white">
+                    {{ course.full_price }}
+                    {{ "courses.egp" | translate }}
+                  </p>
+                </div>
+
+                <div class="rounded-xl bg-gray-50 p-3 dark:bg-gray-700">
+                  <p class="text-xs text-gray-500 dark:text-gray-300">
+                    {{ "courses.monthly_price" | translate }}
+                  </p>
+                  <p class="mt-1 font-semibold text-gray-900 dark:text-white">
+                    @if (course.monthly_price !== null) {
+                      {{ course.monthly_price }}
+                      {{ "courses.egp" | translate }}
+                    } @else {
+                      —
+                    }
+                  </p>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div
+                class="flex flex-wrap gap-2 border-t border-gray-100 pt-4 dark:border-gray-700"
+              >
+                <button
+                  type="button"
+                  (click)="openEditModal(course)"
+                  class="flex-1 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition-all duration-300 hover:bg-blue-400 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:!bg-blue-700"
+                >
+                  {{ "courses.edit" | translate }}
+                </button>
+
+                <button
+                  type="button"
+                  (click)="toggleCourseStatus(course)"
+                  class="flex-1 rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700 transition-all duration-300 ease-out hover:!bg-amber-600 hover:!text-white hover:shadow-md active:translate-y-0 active:scale-95 dark:bg-amber-900/30 dark:text-amber-300 dark:hover:!bg-amber-600"
+                >
+                  {{
+                    (course.is_published
+                      ? "courses.unpublish"
+                      : "courses.publish"
+                    ) | translate
+                  }}
+                </button>
+
+                <button
+                  type="button"
+                  (click)="deleteCourse(course)"
+                  class="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 transition-all duration-300 ease-out hover: hover:!bg-red-600 hover:!text-white hover:shadow-md active:translate-y-0 active:scale-95 dark:bg-red-900/30 dark:text-red-300 dark:hover:!bg-red-600"
+                >
+                  {{ "courses.delete" | translate }}
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <!-- Empty State -->
+      <div
+        class="rounded-2xl border border-dashed border-gray-300 py-16 text-center dark:border-gray-600"
+      >
+        <div class="text-5xl">📚</div>
+
+        <h3 class="mt-4 font-bold text-gray-900 dark:text-white">
+          {{ "courses.empty" | translate }}
+        </h3>
+
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          {{ "courses.empty_description" | translate }}
+        </p>
+      </div>
+    }
+  }
+</div>
+
+<!-- Add / Edit Modal -->
+@if (isModalOpen()) {
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+    (click)="closeModal()"
+  >
+    <div
+      class="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-800"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Modal Header -->
+      <div class="mb-6 flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white">
+            {{
+              (selectedCourseId() ? "courses.edit_title" : "courses.add_title")
+                | translate
+            }}
+          </h2>
+
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {{ "courses.form_subtitle" | translate }}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          (click)="closeModal()"
+          class="rounded-lg px-3 py-2 text-xl text-gray-500 transition hover:bg-gray-100 dark:hover:bg-gray-700"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- Form -->
+      <form
+        [formGroup]="courseForm"
+        (ngSubmit)="saveCourse()"
+        class="space-y-5"
+      >
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <!-- Course Name -->
+          <div>
+            <label
+              class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              {{ "courses.name" | translate }} *
+            </label>
+
+            <input
+              type="text"
+              formControlName="title"
+              [placeholder]="'courses.name' | translate"
+              class="w-full rounded-xl border border-gray-300 bg-transparent px-4 py-3 text-sm outline-none transition focus:border-blue-500 dark:border-gray-600 dark:text-white"
+            />
+
+            @if (
+              courseForm.controls.title.touched &&
+              courseForm.controls.title.invalid
+            ) {
+              <p class="mt-1 text-xs text-red-500">
+                {{ "courses.invalid_name" | translate }}
+              </p>
+            }
+          </div>
+
+          <!-- Slug -->
+          <div>
+            <label
+              class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              {{ "courses.slug" | translate }} *
+            </label>
+
+            <input
+              type="text"
+              formControlName="slug"
+              placeholder="python-programming"
+              dir="ltr"
+              class="w-full rounded-xl border border-gray-300 bg-transparent px-4 py-3 text-sm outline-none transition focus:border-blue-500 dark:border-gray-600 dark:text-white"
+            />
+
+            @if (
+              courseForm.controls.slug.touched &&
+              courseForm.controls.slug.invalid
+            ) {
+              <p class="mt-1 text-xs text-red-500">
+                {{ "courses.invalid_slug" | translate }}
+              </p>
+            }
+          </div>
+
+          <!-- Description -->
+          <div class="md:col-span-2">
+            <label
+              class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              {{ "courses.description" | translate }}
+            </label>
+
+            <textarea
+              rows="3"
+              formControlName="description"
+              [placeholder]="'courses.description_placeholder' | translate"
+              class="w-full rounded-xl border border-gray-300 bg-transparent px-4 py-3 text-sm outline-none transition focus:border-blue-500 dark:border-gray-600 dark:text-white"
+            ></textarea>
+          </div>
+
+          <!-- Thumbnail -->
+          <div class="md:col-span-2">
+            <label
+              class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              {{ "courses.thumbnail" | translate }}
+            </label>
+
+            <input
+              type="url"
+              formControlName="thumbnail_url"
+              placeholder="https://example.com/image.jpg"
+              dir="ltr"
+              class="w-full rounded-xl border border-gray-300 bg-transparent px-4 py-3 text-sm outline-none transition focus:border-blue-500 dark:border-gray-600 dark:text-white"
+            />
+          </div>
+
+          <!-- Duration Weeks -->
+          <div>
+            <label
+              class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              {{ "courses.duration_weeks" | translate }} *
+            </label>
+
+            <input
+              type="number"
+              min="1"
+              formControlName="duration_weeks"
+              class="w-full rounded-xl border border-gray-300 bg-transparent px-4 py-3 text-sm outline-none transition focus:border-blue-500 dark:border-gray-600 dark:text-white"
+            />
+          </div>
+
+          <!-- Sessions Per Week -->
+          <div>
+            <label
+              class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              {{ "courses.sessions_per_week" | translate }} *
+            </label>
+
+            <input
+              type="number"
+              min="1"
+              max="7"
+              formControlName="sessions_per_week"
+              class="w-full rounded-xl border border-gray-300 bg-transparent px-4 py-3 text-sm outline-none transition focus:border-blue-500 dark:border-gray-600 dark:text-white"
+            />
+          </div>
+
+          <!-- Session Duration -->
+          <div>
+            <label
+              class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              {{ "courses.session_duration" | translate }} *
+            </label>
+
+            <input
+              type="number"
+              min="15"
+              formControlName="session_duration_minutes"
+              class="w-full rounded-xl border border-gray-300 bg-transparent px-4 py-3 text-sm outline-none transition focus:border-blue-500 dark:border-gray-600 dark:text-white"
+            />
+          </div>
+
+          <!-- Full Price -->
+          <div>
+            <label
+              class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              {{ "courses.full_price" | translate }} (EGP) *
+            </label>
+
+            <input
+              type="number"
+              min="0"
+              formControlName="full_price"
+              class="w-full rounded-xl border border-gray-300 bg-transparent px-4 py-3 text-sm outline-none transition focus:border-blue-500 dark:border-gray-600 dark:text-white"
+            />
+          </div>
+
+          <!-- Monthly Price -->
+          <div>
+            <label
+              class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              {{ "courses.monthly_price" | translate }} (EGP)
+            </label>
+
+            <input
+              type="number"
+              min="0"
+              formControlName="monthly_price"
+              class="w-full rounded-xl border border-gray-300 bg-transparent px-4 py-3 text-sm outline-none transition focus:border-blue-500 dark:border-gray-600 dark:text-white"
+            />
+          </div>
+
+          <!-- Sort Order -->
+          <div>
+            <label
+              class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              {{ "courses.sort_order" | translate }}
+            </label>
+
+            <input
+              type="number"
+              min="0"
+              formControlName="sort_order"
+              class="w-full rounded-xl border border-gray-300 bg-transparent px-4 py-3 text-sm outline-none transition focus:border-blue-500 dark:border-gray-600 dark:text-white"
+            />
+          </div>
+        </div>
+
+        <!-- Published -->
+        <label
+          class="flex cursor-pointer items-center gap-3 rounded-xl bg-gray-50 p-4 dark:bg-gray-700"
+        >
+          <input
+            type="checkbox"
+            formControlName="is_published"
+            class="h-4 w-4 accent-blue-600"
+          />
+
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-200">
+            {{ "courses.publish_directly" | translate }}
+          </span>
+        </label>
+
+        <!-- Modal Actions -->
+        <div
+          class="flex justify-end gap-3 border-t border-gray-100 pt-5 dark:border-gray-700"
+        >
+          <button
+            type="button"
+            (click)="closeModal()"
+            class="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+          >
+            {{ "courses.cancel" | translate }}
+          </button>
+
+          <button
+            type="submit"
+            [disabled]="saving()"
+            class="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            @if (saving()) {
+              {{ "courses.saving" | translate }}
+            } @else {
+              {{
+                (selectedCourseId() ? "courses.save" : "courses.add_course")
+                  | translate
+              }}
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

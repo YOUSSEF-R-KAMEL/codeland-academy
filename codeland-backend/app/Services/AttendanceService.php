@@ -28,14 +28,17 @@ class AttendanceService
             ->where('status', 'active')
             ->with([
                 'student' => function ($query) use ($session) {
-                    $query->select('users.id', 'users.name', 'users.username')
-                        ->with([
-                            'attendances' => function ($attendanceQuery) use ($session) {
-                                $attendanceQuery
-                                    ->where('class_session_id', $session->id)
-                                    ->orderBy('check_number');
-                            },
-                        ]);
+                    $query->select(
+                        'users.id',
+                        'users.name',
+                        'users.username'
+                    )->with([
+                                'attendances' => function ($attendanceQuery) use ($session) {
+                                    $attendanceQuery
+                                        ->where('class_session_id', $session->id)
+                                        ->orderBy('check_number');
+                                },
+                            ]);
                 },
             ])
             ->get();
@@ -46,23 +49,27 @@ class AttendanceService
                 $student = $enrollment->student;
                 $attendances = $student->attendances;
 
-                $checks = collect([1, 2, 3])->map(function ($number) use ($attendances) {
-                    $attendance = $attendances
-                        ->firstWhere('check_number', $number);
+                $checks = collect([1, 2, 3])->map(
+                    function ($number) use ($attendances) {
+                        $attendance = $attendances
+                            ->firstWhere('check_number', $number);
 
-                    return [
-                        'check_number' => $number,
-                        'is_present' => $attendance?->status === 'present',
-                        'is_recorded' => $attendance !== null,
-                    ];
-                });
+                        return [
+                            'check_number' => $number,
+                            'is_present' => $attendance?->is_present,
+                            'is_recorded' => $attendance !== null,
+                        ];
+                    }
+                );
 
                 return [
                     'student_id' => $student->id,
                     'name' => $student->name,
                     'username' => $student->username,
                     'checks' => $checks->values(),
-                    'final_status' => $this->calculateFinalStatus($attendances),
+                    'final_status' => $this->calculateFinalStatus(
+                        $attendances
+                    ),
                 ];
             })
             ->values();
@@ -70,10 +77,9 @@ class AttendanceService
 
     private function calculateFinalStatus(Collection $attendances): string
     {
-        $checks = $attendances
-            ->whereIn('check_number', [1, 2, 3]);
+        $checks = $attendances->whereIn('check_number', [1, 2, 3]);
 
-        if ($checks->contains('status', 'present')) {
+        if ($checks->contains('is_present', true)) {
             return 'present';
         }
 
@@ -88,8 +94,6 @@ class AttendanceService
         return 'absent';
     }
 
-
-
     public function recordAttendance(
         ClassSession $session,
         array $students,
@@ -103,7 +107,6 @@ class AttendanceService
         }
 
         DB::transaction(function () use ($session, $students, $checkNumber, $markedBy) {
-            // Lock the session to prevent concurrent attendance writes.
             $lockedSession = ClassSession::whereKey($session->id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -157,9 +160,7 @@ class AttendanceService
                         'check_number' => $checkNumber,
                     ],
                     [
-                        'status' => $studentData['is_present']
-                            ? 'present'
-                            : 'absent',
+                        'is_present' => (bool) $studentData['is_present'],
                         'marked_at' => Carbon::now(),
                         'marked_by' => $markedBy->id,
                     ]
@@ -167,5 +168,4 @@ class AttendanceService
             }
         });
     }
-
 }

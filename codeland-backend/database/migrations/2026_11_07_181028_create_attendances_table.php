@@ -20,7 +20,7 @@ return new class extends Migration {
 
             $table->unsignedTinyInteger('check_number');
 
-            $table->string('status', 20);
+            $table->boolean('is_present');
 
             $table->timestamp('marked_at');
 
@@ -41,7 +41,7 @@ return new class extends Migration {
             $table->index([
                 'student_id',
                 'class_session_id',
-                'status',
+                'is_present',
             ]);
         });
     }

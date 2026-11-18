@@ -14,6 +14,10 @@ class GroupController extends Controller
     public function index(Course $course): JsonResponse
     {
         $groups = $course->groups()
+            ->with([
+                'instructors:id,name,email',
+            ])
+            ->withCount('enrollments')
             ->orderBy('start_date')
             ->orderBy('name')
             ->get();

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Requests\Api\V1\StoreAttendanceRequest;
 use App\Models\ClassSession;
+use App\Models\Group;
+use App\Models\User;
 use App\Services\AttendanceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,9 +17,11 @@ class AttendanceController extends ApiController
     ) {
     }
 
-    public function index(ClassSession $classSession): JsonResponse
-    {
-        $this->authorizeSessionAccess($classSession, request());
+    public function index(
+        Group $group,
+        ClassSession $classSession
+    ): JsonResponse {
+        $this->authorizeSessionAccess($group, $classSession, request());
 
         $roster = $this->attendanceService->getSessionRoster($classSession);
 
@@ -33,9 +37,10 @@ class AttendanceController extends ApiController
 
     public function store(
         StoreAttendanceRequest $request,
+        Group $group,
         ClassSession $classSession
     ): JsonResponse {
-        $this->authorizeSessionAccess($classSession, $request);
+        $this->authorizeSessionAccess($group, $classSession, $request);
 
         $data = $request->validated();
 
@@ -64,12 +69,19 @@ class AttendanceController extends ApiController
     }
 
     private function authorizeSessionAccess(
+        Group $group,
         ClassSession $classSession,
         Request $request
     ): void {
         $user = $request->user();
 
         abort_unless($user, 403, 'Unauthenticated.');
+
+        abort_unless(
+            $classSession->group_id === $group->id,
+            404,
+            'Class session not found in this group.'
+        );
 
         if ($user->hasRole('admin')) {
             return;
@@ -82,8 +94,7 @@ class AttendanceController extends ApiController
         );
 
         abort_unless(
-            $classSession->group
-                ->instructors()
+            $group->instructors()
                 ->where('users.id', $user->id)
                 ->exists(),
             403,
@@ -91,10 +102,15 @@ class AttendanceController extends ApiController
         );
     }
 
-
     public function myAttendance(Request $request): JsonResponse
     {
         $student = $request->user();
+
+        abort_unless(
+            $student && $student->hasRole('student'),
+            403,
+            'Only students can access their attendance.'
+        );
 
         $sessions = ClassSession::query()
             ->whereHas('group.enrollments', function ($query) use ($student) {
@@ -124,7 +140,7 @@ class AttendanceController extends ApiController
 
                     return [
                         'check_number' => $number,
-                        'status' => $attendance?->status,
+                        'is_present' => $attendance?->is_present,
                         'is_recorded' => $attendance !== null,
                         'marked_at' => $attendance?->marked_at,
                         'notes' => $attendance?->notes,
@@ -132,7 +148,7 @@ class AttendanceController extends ApiController
                 }
             );
 
-            if ($attendances->contains('status', 'present')) {
+            if ($attendances->contains('is_present', true)) {
                 $finalStatus = 'present';
             } elseif (
                 $checks->every(
@@ -168,6 +184,4 @@ class AttendanceController extends ApiController
             ]
         );
     }
-
-
 }

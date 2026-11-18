@@ -14,7 +14,7 @@ export const routes: Routes = [
     path: 'login',
     canActivate: [guestGuard],
     loadComponent: () =>
-      import('./features/auth/pages/login/login.component').then(
+      import('./features/auth/login/login.component').then(
         (m) => m.LoginComponent,
       ),
   },
@@ -50,6 +50,28 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/admin/pages/instructors/instructors.component').then(
             (m) => m.InstructorsComponent,
+          ),
+      },
+      {
+        path: 'courses',
+        loadComponent: () =>
+          import('./features/admin/pages/courses/courses.component').then(
+            (m) => m.CoursesComponent,
+          ),
+      },
+      {
+        path: 'groups',
+        loadComponent: () =>
+          import('./features/admin/pages/groups/groups.component').then(
+            (m) => m.GroupsComponent,
+          ),
+      },
+
+      {
+        path: 'groups/:groupId/sessions',
+        loadComponent: () =>
+          import('./features/admin/pages/class-sessions/class-sessions.component').then(
+            (m) => m.ClassSessionsComponent,
           ),
       },
     ],
