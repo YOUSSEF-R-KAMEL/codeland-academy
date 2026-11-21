@@ -7,10 +7,15 @@ import {
   signal,
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  FormsModule,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
-import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { forkJoin, map, of, switchMap } from 'rxjs';
 
 import { Course } from '../../models/course.model';
 import { Group } from '../../models/group.model';
@@ -27,11 +32,17 @@ import { GroupsService } from '../../services/groups.service';
 import { StudentsService } from '../../services/students.service';
 import { EnrollmentsService } from '../../services/enrollments.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import {
+  SelectComponent,
+  SelectOption,
+} from '../../../../shared/components/select.component';
+
+type StudentSort = 'newest' | 'oldest' | 'name_asc' | 'name_desc';
 
 @Component({
   selector: 'app-students',
   standalone: true,
-  imports: [TranslatePipe, ReactiveFormsModule],
+  imports: [TranslatePipe, ReactiveFormsModule, FormsModule, SelectComponent],
   templateUrl: './students.component.html',
   styleUrl: './students.component.scss',
 })
@@ -44,7 +55,8 @@ export class StudentsComponent implements OnInit {
   private readonly toastService = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
-  private readonly searchSubject = new Subject<string>();
+  private readonly pageSize = 10;
+  private readonly apiPageSize = 100;
 
   readonly students = signal<Student[]>([]);
   readonly loading = signal(false);
@@ -57,6 +69,7 @@ export class StudentsComponent implements OnInit {
   readonly searchTerm = signal('');
   readonly selectedStatus = signal('');
   readonly selectedGroup = signal('');
+  readonly sortBy = signal<StudentSort>('newest');
   readonly currentPage = signal(1);
   readonly showPassword = signal(false);
 
@@ -64,14 +77,101 @@ export class StudentsComponent implements OnInit {
   readonly availableGroups = signal<Group[]>([]);
   readonly loadingGroups = signal(false);
 
+  readonly statusOptions: SelectOption[] = [
+    { value: '', label: 'admin.students.all_statuses' },
+    { value: 'active', label: 'admin.students.active' },
+    { value: 'inactive', label: 'admin.students.inactive' },
+  ];
+
+  readonly sortOptions: SelectOption[] = [
+    { value: 'newest', label: 'admin.students.sort.newest' },
+    { value: 'oldest', label: 'admin.students.sort.oldest' },
+    { value: 'name_asc', label: 'admin.students.sort.name_asc' },
+    { value: 'name_desc', label: 'admin.students.sort.name_desc' },
+  ];
+
+  readonly statusControl = this.fb.control('', { nonNullable: true });
+  readonly groupControl = this.fb.control('', { nonNullable: true });
+  readonly sortControl = this.fb.control<StudentSort>('newest', {
+    nonNullable: true,
+  });
+
   readonly pagination = signal<StudentPagination>({
     current_page: 1,
     last_page: 1,
-    per_page: 10,
+    per_page: this.pageSize,
     total: 0,
   });
 
-  readonly totalStudents = computed(() => this.pagination().total);
+  readonly groups = computed(() => {
+    const groupNames = this.students()
+      .map((student) => student.enrollment?.group?.name)
+      .filter((name): name is string => !!name);
+
+    return [...new Set(groupNames)].sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: 'base' }),
+    );
+  });
+
+  readonly groupOptions = computed<SelectOption[]>(() => [
+    { value: '', label: 'admin.students.all_groups' },
+    ...this.groups().map((name) => ({
+      value: name,
+      label: name,
+    })),
+  ]);
+
+  readonly filteredStudents = computed(() => {
+    const search = this.searchTerm().trim().toLowerCase();
+    const status = this.selectedStatus();
+    const group = this.selectedGroup();
+
+    let result = this.students().filter((student) => {
+      const matchesSearch =
+        !search ||
+        student.name.toLowerCase().includes(search) ||
+        (student.email ?? '').toLowerCase().includes(search) ||
+        String(student.id).includes(search);
+
+      const matchesStatus =
+        status === '' ||
+        (status === 'active' && student.is_active) ||
+        (status === 'inactive' && !student.is_active);
+
+      const matchesGroup =
+        group === '' || student.enrollment?.group?.name === group;
+
+      return matchesSearch && matchesStatus && matchesGroup;
+    });
+
+    result = [...result];
+
+    switch (this.sortBy()) {
+      case 'newest':
+        result.sort((a, b) => b.id - a.id);
+        break;
+
+      case 'oldest':
+        result.sort((a, b) => a.id - b.id);
+        break;
+
+      case 'name_asc':
+        result.sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+        );
+        break;
+
+      case 'name_desc':
+        result.sort((a, b) =>
+          b.name.localeCompare(a.name, undefined, { sensitivity: 'base' }),
+        );
+        break;
+    }
+
+    return result;
+  });
+
+  readonly totalStudents = computed(() => this.students().length);
 
   readonly activeStudents = computed(
     () => this.students().filter((student) => student.is_active).length,
@@ -81,24 +181,14 @@ export class StudentsComponent implements OnInit {
     () => this.students().filter((student) => !student.is_active).length,
   );
 
-  readonly groups = computed(() => {
-    const groupNames = this.students()
-      .map((student) => student.enrollment?.group?.name)
-      .filter((name): name is string => !!name);
+  readonly lastPage = computed(() =>
+    Math.max(1, Math.ceil(this.filteredStudents().length / this.pageSize)),
+  );
 
-    return [...new Set(groupNames)];
-  });
+  readonly paginatedStudents = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize;
 
-  readonly filteredStudents = computed(() => {
-    const group = this.selectedGroup();
-
-    if (!group) {
-      return this.students();
-    }
-
-    return this.students().filter(
-      (student) => student.enrollment?.group?.name === group,
-    );
+    return this.filteredStudents().slice(start, start + this.pageSize);
   });
 
   readonly studentForm = this.fb.group({
@@ -111,19 +201,20 @@ export class StudentsComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.searchSubject
-      .pipe(
-        debounceTime(350),
-        distinctUntilChanged(),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe((search) => {
-        this.searchTerm.set(search);
-        this.loadStudents(1);
-      });
+    this.statusControl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((status) => this.onStatusChange(status));
+
+    this.groupControl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((group) => this.onGroupChange(group));
+
+    this.sortControl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((sort) => this.onSortChange(sort));
 
     this.loadCourses();
-    this.loadStudents(1);
+    this.loadStudents();
   }
 
   private loadCourses(): void {
@@ -179,34 +270,48 @@ export class StudentsComponent implements OnInit {
       });
   }
 
-  loadStudents(page = this.currentPage()): void {
+  loadStudents(_page = 1): void {
     this.loading.set(true);
 
     const filters: StudentsFilters = {
-      page,
-      per_page: 10,
+      page: 1,
+      per_page: this.apiPageSize,
     };
-
-    const search = this.searchTerm().trim();
-
-    if (search) {
-      filters.search = search;
-    }
-
-    if (this.selectedStatus() === 'active') {
-      filters.is_active = true;
-    } else if (this.selectedStatus() === 'inactive') {
-      filters.is_active = false;
-    }
 
     this.studentsService
       .getStudents(filters)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        switchMap((response) => {
+          const firstPageStudents = response.data.users;
+          const lastApiPage = response.data.pagination.last_page;
+
+          if (lastApiPage <= 1) {
+            return of(firstPageStudents);
+          }
+
+          const remainingRequests = Array.from(
+            { length: lastApiPage - 1 },
+            (_, index) =>
+              this.studentsService.getStudents({
+                page: index + 2,
+                per_page: this.apiPageSize,
+              }),
+          );
+
+          return forkJoin(remainingRequests).pipe(
+            map((responses) => [
+              ...firstPageStudents,
+              ...responses.flatMap((pageResponse) => pageResponse.data.users),
+            ]),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
-        next: (response) => {
-          this.students.set(response.data.users);
-          this.pagination.set(response.data.pagination);
-          this.currentPage.set(response.data.pagination.current_page);
+        next: (allStudents) => {
+          this.students.set(allStudents);
+          this.currentPage.set(1);
+          this.updatePagination();
           this.loading.set(false);
         },
         error: (error: HttpErrorResponse) => {
@@ -217,29 +322,59 @@ export class StudentsComponent implements OnInit {
   }
 
   onSearchChange(value: string): void {
-    this.searchSubject.next(value);
+    this.searchTerm.set(value);
+    this.currentPage.set(1);
+    this.updatePagination();
   }
 
   onStatusChange(status: string): void {
     this.selectedStatus.set(status);
     this.currentPage.set(1);
-    this.loadStudents(1);
+    this.updatePagination();
   }
 
   onGroupChange(value: string): void {
     this.selectedGroup.set(value);
+    this.currentPage.set(1);
+    this.updatePagination();
+  }
+
+  onSortChange(value: StudentSort): void {
+    this.sortBy.set(value);
+    this.currentPage.set(1);
+    this.updatePagination();
+  }
+
+  resetFilters(): void {
+    this.searchTerm.set('');
+    this.selectedStatus.set('');
+    this.selectedGroup.set('');
+    this.sortBy.set('newest');
+
+    this.statusControl.setValue('', { emitEvent: false });
+    this.groupControl.setValue('', { emitEvent: false });
+    this.sortControl.setValue('newest', { emitEvent: false });
+
+    this.currentPage.set(1);
+    this.updatePagination();
   }
 
   goToPage(page: number): void {
-    if (
-      page < 1 ||
-      page > this.pagination().last_page ||
-      page === this.currentPage()
-    ) {
+    if (page < 1 || page > this.lastPage() || page === this.currentPage()) {
       return;
     }
 
-    this.loadStudents(page);
+    this.currentPage.set(page);
+    this.updatePagination();
+  }
+
+  private updatePagination(): void {
+    this.pagination.set({
+      current_page: this.currentPage(),
+      last_page: this.lastPage(),
+      per_page: this.pageSize,
+      total: this.filteredStudents().length,
+    });
   }
 
   openAddModal(): void {
@@ -335,15 +470,13 @@ export class StudentsComponent implements OnInit {
   }
 
   saveStudent(): void {
-    if (this.studentForm.invalid || this.saving()) {
-      this.studentForm.markAllAsTouched();
+    if (this.saving()) {
+      return;
+    }
 
-      Object.entries(this.studentForm.controls).forEach(([key, control]) => {
-        if (control.invalid) {
-          console.log(key, control.errors);
-        }
-      });
+    this.studentForm.markAllAsTouched();
 
+    if (this.studentForm.invalid) {
       return;
     }
 
@@ -404,7 +537,7 @@ export class StudentsComponent implements OnInit {
                   `Student account created, but enrollment failed: ${this.getErrorMessage(error)}`,
                 );
 
-                this.loadStudents(1);
+                this.loadStudents();
               },
             });
         },
@@ -422,7 +555,7 @@ export class StudentsComponent implements OnInit {
 
     this.toastService.success('students.created_successfully');
 
-    this.loadStudents(1);
+    this.loadStudents();
   }
 
   private updateStudent(studentId: number): void {
@@ -454,7 +587,7 @@ export class StudentsComponent implements OnInit {
 
           this.toastService.success('students.updated_successfully');
 
-          this.loadStudents(this.currentPage());
+          this.loadStudents();
         },
         error: (error: HttpErrorResponse) => {
           this.saving.set(false);
@@ -485,7 +618,7 @@ export class StudentsComponent implements OnInit {
               : 'students.deactivated_successfully',
           );
 
-          this.loadStudents(this.currentPage());
+          this.loadStudents();
         },
         error: (error: HttpErrorResponse) => {
           this.processingStudentId.set(null);
@@ -497,17 +630,23 @@ export class StudentsComponent implements OnInit {
   private getErrorMessage(error: HttpErrorResponse): string {
     const response = error.error;
 
-    if (response?.errors) {
-      const firstError = Object.values(
-        response.errors as Record<string, string[]>,
-      )[0];
+    if (response?.errors && typeof response.errors === 'object') {
+      const messages = Object.values(
+        response.errors as Record<string, string[] | string>,
+      )
+        .flatMap((value) => (Array.isArray(value) ? value : [value]))
+        .filter((message): message is string => typeof message === 'string');
 
-      if (firstError?.length) {
-        return firstError[0];
+      if (messages.length) {
+        return messages.join(' • ');
       }
     }
 
-    return response?.message || 'Something went wrong. Please try again.';
+    return (
+      response?.message ||
+      error.message ||
+      'Something went wrong. Please try again.'
+    );
   }
 
   togglePasswordVisibility(): void {

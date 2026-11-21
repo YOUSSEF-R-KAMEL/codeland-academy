@@ -7,27 +7,31 @@ import {
   signal,
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  FormsModule,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
-import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormControl } from '@angular/forms';
 import { ToastService } from '../../../../core/services/toast.service';
 import { InstructorsService } from '../../services/instructors.service';
 
 import {
   CreateInstructorRequest,
   Instructor,
-  InstructorsFilters,
   InstructorPagination,
   UpdateInstructorRequest,
 } from '../../models/instructor.model';
 import { SelectComponent } from '../../../../shared/components/select.component';
 
+type InstructorSort = 'newest' | 'oldest' | 'name_asc' | 'name_desc';
+
 @Component({
   selector: 'app-instructors',
   standalone: true,
-  imports: [TranslatePipe, ReactiveFormsModule, SelectComponent],
+  imports: [TranslatePipe, ReactiveFormsModule, SelectComponent, FormsModule],
   templateUrl: './instructors.component.html',
   styleUrl: './instructors.component.scss',
 })
@@ -36,7 +40,8 @@ export class InstructorsComponent implements OnInit {
   private readonly instructorsService = inject(InstructorsService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly toastService = inject(ToastService);
-  private readonly searchSubject = new Subject<string>();
+
+  private readonly pageSize = 10;
 
   readonly instructors = signal<Instructor[]>([]);
   readonly loading = signal(false);
@@ -48,35 +53,102 @@ export class InstructorsComponent implements OnInit {
 
   readonly searchTerm = signal('');
   readonly selectedStatus = signal('');
-
+  readonly sortBy = signal<InstructorSort>('newest');
   readonly currentPage = signal(1);
+
   readonly pagination = signal<InstructorPagination>({
     current_page: 1,
     last_page: 1,
     per_page: 10,
     total: 0,
   });
+
   readonly statusOptions = [
-    { value: '', label: 'instructors.all_statuses' },
-    { value: 'active', label: 'instructors.active' },
-    { value: 'inactive', label: 'instructors.inactive' },
+    { value: '', label: 'admin.instructors.all_statuses' },
+    { value: 'active', label: 'admin.instructors.active' },
+    { value: 'inactive', label: 'admin.instructors.inactive' },
   ];
 
-  readonly statusControl = new FormControl('', {
+  readonly sortOptions = [
+    { value: 'newest', label: 'admin.instructors.sort.newest' },
+    { value: 'oldest', label: 'admin.instructors.sort.oldest' },
+    { value: 'name_asc', label: 'admin.instructors.sort.name_asc' },
+    { value: 'name_desc', label: 'admin.instructors.sort.name_desc' },
+  ];
+
+  readonly statusControl = this.fb.control('', { nonNullable: true });
+  readonly sortControl = this.fb.control<InstructorSort>('newest', {
     nonNullable: true,
   });
 
-  readonly totalInstructors = computed(() => this.pagination().total);
+  readonly filteredInstructors = computed(() => {
+    const search = this.searchTerm().trim().toLowerCase();
+    const status = this.selectedStatus();
+
+    let result = this.instructors().filter((instructor) => {
+      const matchesSearch =
+        !search ||
+        instructor.name.toLowerCase().includes(search) ||
+        (instructor.email ?? '').toLowerCase().includes(search) ||
+        String(instructor.id).includes(search);
+
+      const matchesStatus =
+        status === '' ||
+        (status === 'active' && instructor.is_active) ||
+        (status === 'inactive' && !instructor.is_active);
+
+      return matchesSearch && matchesStatus;
+    });
+
+    result = [...result];
+
+    switch (this.sortBy()) {
+      case 'newest':
+        result.sort((a, b) => b.id - a.id);
+        break;
+
+      case 'oldest':
+        result.sort((a, b) => a.id - b.id);
+        break;
+
+      case 'name_asc':
+        result.sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+        );
+        break;
+
+      case 'name_desc':
+        result.sort((a, b) =>
+          b.name.localeCompare(a.name, undefined, { sensitivity: 'base' }),
+        );
+        break;
+    }
+
+    return result;
+  });
+
+  readonly totalInstructors = computed(() => this.filteredInstructors().length);
 
   readonly activeInstructors = computed(
     () =>
-      this.instructors().filter((instructor) => instructor.is_active).length,
+      this.filteredInstructors().filter((instructor) => instructor.is_active)
+        .length,
   );
 
   readonly inactiveInstructors = computed(
     () =>
-      this.instructors().filter((instructor) => !instructor.is_active).length,
+      this.filteredInstructors().filter((instructor) => !instructor.is_active)
+        .length,
   );
+
+  readonly lastPage = computed(() =>
+    Math.max(1, Math.ceil(this.totalInstructors() / this.pageSize)),
+  );
+
+  readonly paginatedInstructors = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return this.filteredInstructors().slice(start, start + this.pageSize);
+  });
 
   readonly instructorForm = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(3)]],
@@ -88,51 +160,26 @@ export class InstructorsComponent implements OnInit {
   ngOnInit(): void {
     this.statusControl.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((status) => {
-        this.onStatusChange(status);
-      });
-    this.searchSubject
-      .pipe(
-        debounceTime(350),
-        distinctUntilChanged(),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe((search) => {
-        this.searchTerm.set(search);
-        this.loadInstructors(1);
-      });
+      .subscribe((status) => this.onStatusChange(status));
 
-    this.loadInstructors(1);
+    this.sortControl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((value) => this.onSortChange(value));
+
+    this.loadInstructors();
   }
 
-  loadInstructors(page = this.currentPage()): void {
+  loadInstructors(): void {
     this.loading.set(true);
 
-    const filters: InstructorsFilters = {
-      page,
-      per_page: 10,
-    };
-
-    const search = this.searchTerm().trim();
-
-    if (search) {
-      filters.search = search;
-    }
-
-    if (this.selectedStatus() === 'active') {
-      filters.is_active = true;
-    } else if (this.selectedStatus() === 'inactive') {
-      filters.is_active = false;
-    }
-
     this.instructorsService
-      .getInstructors(filters)
+      .getInstructors({ page: 1, per_page: 100 })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
           this.instructors.set(response.data.users);
-          this.pagination.set(response.data.pagination);
-          this.currentPage.set(response.data.pagination.current_page);
+          this.currentPage.set(1);
+          this.updatePagination();
           this.loading.set(false);
         },
         error: (error: HttpErrorResponse) => {
@@ -143,24 +190,51 @@ export class InstructorsComponent implements OnInit {
   }
 
   onSearchChange(value: string): void {
-    this.searchSubject.next(value);
+    this.searchTerm.set(value);
+    this.currentPage.set(1);
+    this.updatePagination();
   }
 
   onStatusChange(value: string): void {
     this.selectedStatus.set(value);
-    this.loadInstructors(1);
+    this.currentPage.set(1);
+    this.updatePagination();
+  }
+
+  onSortChange(value: InstructorSort): void {
+    this.sortBy.set(value);
+    this.currentPage.set(1);
+    this.updatePagination();
+  }
+
+  resetFilters(): void {
+    this.searchTerm.set('');
+    this.selectedStatus.set('');
+    this.sortBy.set('newest');
+
+    this.statusControl.setValue('', { emitEvent: false });
+    this.sortControl.setValue('newest', { emitEvent: false });
+
+    this.currentPage.set(1);
+    this.updatePagination();
   }
 
   goToPage(page: number): void {
-    if (
-      page < 1 ||
-      page > this.pagination().last_page ||
-      page === this.currentPage()
-    ) {
+    if (page < 1 || page > this.lastPage()) {
       return;
     }
 
-    this.loadInstructors(page);
+    this.currentPage.set(page);
+    this.updatePagination();
+  }
+
+  private updatePagination(): void {
+    this.pagination.set({
+      current_page: this.currentPage(),
+      last_page: this.lastPage(),
+      per_page: this.pageSize,
+      total: this.totalInstructors(),
+    });
   }
 
   openAddModal(): void {
@@ -268,9 +342,8 @@ export class InstructorsComponent implements OnInit {
           this.saving.set(false);
           this.isModalOpen.set(false);
           this.selectedInstructorId.set(null);
-
           this.toastService.success('instructors.created_successfully');
-          this.loadInstructors(1);
+          this.loadInstructors();
         },
         error: (error: HttpErrorResponse) => {
           this.saving.set(false);
@@ -306,9 +379,8 @@ export class InstructorsComponent implements OnInit {
           this.saving.set(false);
           this.isModalOpen.set(false);
           this.selectedInstructorId.set(null);
-
           this.toastService.success('instructors.updated_successfully');
-          this.loadInstructors(this.currentPage());
+          this.loadInstructors();
         },
         error: (error: HttpErrorResponse) => {
           this.saving.set(false);
@@ -323,7 +395,6 @@ export class InstructorsComponent implements OnInit {
     }
 
     const newStatus = !instructor.is_active;
-
     this.processingInstructorId.set(instructor.id);
 
     this.instructorsService
@@ -332,14 +403,12 @@ export class InstructorsComponent implements OnInit {
       .subscribe({
         next: () => {
           this.processingInstructorId.set(null);
-
           this.toastService.success(
             newStatus
               ? 'instructors.activated_successfully'
               : 'instructors.deactivated_successfully',
           );
-
-          this.loadInstructors(this.currentPage());
+          this.loadInstructors();
         },
         error: (error: HttpErrorResponse) => {
           this.processingInstructorId.set(null);

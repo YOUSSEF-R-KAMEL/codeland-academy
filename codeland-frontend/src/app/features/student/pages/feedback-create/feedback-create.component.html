@@ -1,0 +1,112 @@
+<div class="mx-auto max-w-3xl space-y-6">
+  <div>
+    <a
+      routerLink="/student/feedback"
+      class="text-sm font-semibold text-[#259b2b] hover:underline"
+    >
+      ← {{ "student.feedback.back_to_list" | translate }}
+    </a>
+
+    <h1 class="mt-4 text-2xl font-bold text-[var(--color-text)]">
+      {{ "student.feedback.create_title" | translate }}
+    </h1>
+
+    <p class="mt-2 text-sm text-[var(--color-muted)]">
+      {{ "student.feedback.create_description" | translate }}
+    </p>
+  </div>
+
+  <form
+    (ngSubmit)="submit()"
+    class="space-y-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 md:p-7"
+  >
+    <div>
+      <label class="mb-2 block text-sm font-semibold text-[var(--color-text)]">
+        {{ "student.feedback.type_label" | translate }}
+      </label>
+
+      <select
+        [ngModel]="type()"
+        (ngModelChange)="type.set($event)"
+        name="type"
+        class="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm text-[var(--color-text)] outline-none focus:border-[#259b2b]"
+      >
+        <option value="suggestion">
+          {{ "student.feedback.types.suggestion" | translate }}
+        </option>
+        <option value="complaint">
+          {{ "student.feedback.types.complaint" | translate }}
+        </option>
+        <option value="inquiry">
+          {{ "student.feedback.types.inquiry" | translate }}
+        </option>
+      </select>
+    </div>
+
+    <div>
+      <label class="mb-2 block text-sm font-semibold text-[var(--color-text)]">
+        {{ "student.feedback.subject_label" | translate }}
+      </label>
+
+      <input
+        type="text"
+        name="subject"
+        [ngModel]="subject()"
+        (ngModelChange)="subject.set($event)"
+        maxlength="255"
+        required
+        class="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm text-[var(--color-text)] outline-none focus:border-[#259b2b]"
+        [placeholder]="'student.feedback.subject_placeholder' | translate"
+      />
+    </div>
+
+    <div>
+      <label class="mb-2 block text-sm font-semibold text-[var(--color-text)]">
+        {{ "student.feedback.message_label" | translate }}
+      </label>
+
+      <textarea
+        name="message"
+        [ngModel]="message()"
+        (ngModelChange)="message.set($event)"
+        rows="7"
+        minlength="10"
+        maxlength="5000"
+        required
+        class="w-full resize-y rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm leading-7 text-[var(--color-text)] outline-none focus:border-[#259b2b]"
+        [placeholder]="'student.feedback.message_placeholder' | translate"
+      ></textarea>
+
+      <p class="mt-2 text-end text-xs text-[var(--color-muted)]">
+        {{ message().length }} / 5000
+      </p>
+    </div>
+
+    @if (errorMessage()) {
+      <p class="rounded-xl bg-red-500/10 p-3 text-sm text-red-500">
+        {{ errorMessage() | translate }}
+      </p>
+    }
+
+    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      <a
+        routerLink="/student/feedback"
+        class="rounded-xl border border-[var(--color-border)] px-5 py-3 text-center text-sm font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-background)]"
+      >
+        {{ "common.cancel" | translate }}
+      </a>
+
+      <button
+        type="submit"
+        [disabled]="isSubmitting()"
+        class="rounded-xl bg-[#259b2b] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#208625] disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {{
+          isSubmitting()
+            ? ("common.loading" | translate)
+            : ("student.feedback.submit_button" | translate)
+        }}
+      </button>
+    </div>
+  </form>
+</div>

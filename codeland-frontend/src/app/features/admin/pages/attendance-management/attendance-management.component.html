@@ -1,112 +1,209 @@
-<div class="space-y-6">
-  <div>
-    <h1 class="text-2xl font-bold text-gray-900">
-      {{ "attendance.management" | translate }}
-    </h1>
+<div class="modal-enter space-y-6">
+  <!-- Header -->
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+        {{ "admin.attendance.management" | translate }}
+      </h1>
 
-    <p class="mt-1 text-gray-500">
-      {{ sessionTitle() }}
-    </p>
+      <p class="mt-1 text-gray-500 dark:text-gray-400">
+        {{ sessionTitle() }}
+      </p>
+    </div>
+
+    <button
+      type="button"
+      (click)="retryLoading()"
+      [disabled]="loading() || saving()"
+      class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+    >
+      {{ "common.refresh" | translate }}
+    </button>
   </div>
 
+  <!-- Error Message -->
   @if (errorMessage()) {
-    <div class="rounded-lg bg-red-50 p-4 text-red-700">
-      {{ errorMessage() | translate }}
+    <div
+      class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300"
+    >
+      <span>{{ errorMessage() | translate }}</span>
+
+      @if (errorMessage() === "admin.attendance.load_error") {
+        <button
+          type="button"
+          (click)="retryLoading()"
+          [disabled]="loading() || saving()"
+          class="font-semibold underline disabled:opacity-50"
+        >
+          {{ "common.retry" | translate }}
+        </button>
+      }
     </div>
   }
 
+  <!-- Success Message -->
   @if (successMessage()) {
-    <div class="rounded-lg bg-green-50 p-4 text-green-700">
+    <div
+      class="rounded-lg border border-green-200 bg-green-50 p-4 text-green-700 dark:border-green-900 dark:bg-green-950/30 dark:text-green-300"
+    >
       {{ successMessage() | translate }}
     </div>
   }
 
+  <!-- Check Selection -->
   <div class="flex flex-wrap gap-3">
     @for (check of [1, 2, 3]; track check) {
       <button
         type="button"
         (click)="selectCheck(check)"
-        class="rounded-lg border px-5 py-2 font-medium"
+        [disabled]="loading() || saving()"
+        class="rounded-lg border px-5 py-2 font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
         [class.bg-blue-600]="selectedCheck() === check"
         [class.text-white]="selectedCheck() === check"
         [class.border-blue-600]="selectedCheck() === check"
+        [class.border-gray-300]="selectedCheck() !== check"
+        [class.text-gray-700]="selectedCheck() !== check"
+        [class.dark:border-gray-700]="selectedCheck() !== check"
+        [class.dark:text-gray-200]="selectedCheck() !== check"
       >
-        {{ "attendance.check" | translate }} {{ check }}
+        {{ "admin.attendance.check" | translate }} {{ check }}
       </button>
     }
   </div>
 
   @if (loading()) {
-    <div class="py-10 text-center text-gray-500">
+    <div class="py-10 text-center text-gray-500 dark:text-gray-400">
       {{ "common.loading" | translate }}
     </div>
   } @else {
-    <div class="overflow-x-auto rounded-xl border border-gray-200">
-      <table class="w-full text-left">
-        <thead class="bg-gray-50">
+    <!-- Attendance Statistics -->
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div
+        class="rounded-xl border border-green-200 bg-green-50 p-5 dark:border-green-900 dark:bg-green-950/20"
+      >
+        <p class="text-sm font-medium text-green-700 dark:text-green-400">
+          {{ "admin.attendance.present" | translate }}
+        </p>
+
+        <p class="mt-2 text-3xl font-bold text-green-700 dark:text-green-400">
+          {{ presentCount() }}
+        </p>
+      </div>
+
+      <div
+        class="rounded-xl border border-red-200 bg-red-50 p-5 dark:border-red-900 dark:bg-red-950/20"
+      >
+        <p class="text-sm font-medium text-red-700 dark:text-red-400">
+          {{ "admin.attendance.absent" | translate }}
+        </p>
+
+        <p class="mt-2 text-3xl font-bold text-red-700 dark:text-red-400">
+          {{ absentCount() }}
+        </p>
+      </div>
+
+      <div
+        class="rounded-xl border border-yellow-200 bg-yellow-50 p-5 dark:border-yellow-900 dark:bg-yellow-950/20"
+      >
+        <p class="text-sm font-medium text-yellow-700 dark:text-yellow-400">
+          {{ "admin.attendance.unmarked" | translate }}
+        </p>
+
+        <p class="mt-2 text-3xl font-bold text-yellow-700 dark:text-yellow-400">
+          {{ unmarkedCount() }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Students Table -->
+    <div
+      class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700"
+    >
+      <table class="w-full text-center">
+        <thead class="bg-gray-50 dark:bg-gray-800">
           <tr>
-            <th class="px-5 py-4">
-              {{ "attendance.student" | translate }}
+            <th class="px-5 py-4 text-gray-700 dark:text-gray-200">
+              {{ "admin.attendance.student" | translate }}
             </th>
-            <th class="px-5 py-4">
-              {{ "attendance.username" | translate }}
+
+            <th class="px-5 py-4 text-gray-700 dark:text-gray-200">
+              {{ "admin.attendance.username" | translate }}
             </th>
-            <th class="px-5 py-4">
-              {{ "attendance.status" | translate }}
+
+            <th class="px-5 py-4 text-gray-700 dark:text-gray-200">
+              {{ "admin.attendance.status" | translate }}
             </th>
-            <th class="px-5 py-4">
-              {{ "attendance.final_status" | translate }}
+
+            <th class="px-5 py-4 text-gray-700 dark:text-gray-200">
+              {{ "admin.attendance.final_status" | translate }}
             </th>
           </tr>
         </thead>
 
-        <tbody class="divide-y divide-gray-200">
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
           @for (student of students(); track student.student_id) {
-            <tr>
-              <td class="px-5 py-4 font-medium">
+            <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-800/50">
+              <td class="px-5 py-4 font-medium text-gray-900 dark:text-white">
                 {{ student.name }}
               </td>
 
-              <td class="px-5 py-4 text-gray-500">
+              <td class="px-5 py-4 text-gray-500 dark:text-gray-400">
                 {{ student.username }}
               </td>
 
               <td class="px-5 py-4">
-                <div class="flex gap-2">
+                <div class="flex justify-center gap-2">
                   <button
                     type="button"
                     (click)="updateStudentAttendance(student.student_id, true)"
-                    class="rounded-lg px-3 py-2 text-sm"
+                    [disabled]="saving() || loading()"
+                    class="rounded-lg px-3 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-50"
                     [class.bg-green-600]="getCheckStatus(student) === true"
                     [class.text-white]="getCheckStatus(student) === true"
                     [class.bg-gray-100]="getCheckStatus(student) !== true"
+                    [class.text-gray-700]="getCheckStatus(student) !== true"
+                    [class.dark:bg-gray-700]="getCheckStatus(student) !== true"
+                    [class.dark:text-gray-200]="
+                      getCheckStatus(student) !== true
+                    "
                   >
-                    {{ "attendance.present" | translate }}
+                    {{ "admin.attendance.present" | translate }}
                   </button>
 
                   <button
                     type="button"
                     (click)="updateStudentAttendance(student.student_id, false)"
-                    class="rounded-lg px-3 py-2 text-sm"
+                    [disabled]="saving() || loading()"
+                    class="rounded-lg px-3 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-50"
                     [class.bg-red-600]="getCheckStatus(student) === false"
                     [class.text-white]="getCheckStatus(student) === false"
                     [class.bg-gray-100]="getCheckStatus(student) !== false"
+                    [class.text-gray-700]="getCheckStatus(student) !== false"
+                    [class.dark:bg-gray-700]="getCheckStatus(student) !== false"
+                    [class.dark:text-gray-200]="
+                      getCheckStatus(student) !== false
+                    "
                   >
-                    {{ "attendance.absent" | translate }}
+                    {{ "admin.attendance.absent" | translate }}
                   </button>
                 </div>
               </td>
 
               <td class="px-5 py-4">
-                <span class="rounded-full bg-gray-100 px-3 py-1 text-sm">
-                  {{ "attendance." + student.final_status | translate }}
+                <span
+                  class="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+                >
+                  {{ "admin.attendance." + student.final_status | translate }}
                 </span>
               </td>
             </tr>
           } @empty {
             <tr>
-              <td colspan="4" class="px-5 py-10 text-center text-gray-500">
-                {{ "attendance.no_students" | translate }}
+              <td
+                colspan="4"
+                class="px-5 py-10 text-center text-gray-500 dark:text-gray-400"
+              >
+                {{ "admin.attendance.no_students" | translate }}
               </td>
             </tr>
           }
@@ -114,17 +211,18 @@
       </table>
     </div>
 
+    <!-- Save Button -->
     <div class="flex justify-end">
       <button
         type="button"
         (click)="saveAttendance()"
         [disabled]="saving() || students().length === 0"
-        class="rounded-lg bg-blue-600 px-6 py-3 font-medium text-white disabled:opacity-50"
+        class="rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
         @if (saving()) {
           {{ "common.saving" | translate }}
         } @else {
-          {{ "attendance.save" | translate }}
+          {{ "admin.attendance.save" | translate }}
         }
       </button>
     </div>

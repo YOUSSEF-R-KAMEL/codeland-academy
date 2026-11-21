@@ -4,46 +4,6 @@
   <div
     class="login-shell w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 overflow-hidden rounded-[2rem]"
   >
-    <!-- Brand Section -->
-    <section
-      class="brand-panel hidden lg:flex flex-col justify-between p-10 xl:p-12 text-white"
-    >
-      <div>
-        <img
-          src="/logo2.png"
-          alt="Codeland Academy"
-          class="w-48 h-auto object-contain"
-        />
-      </div>
-
-      <div class="my-12">
-        <span
-          class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white/90"
-        >
-          <span class="h-2 w-2 rounded-full bg-green-300"></span>
-          {{ "auth.brand_tagline" | translate }}
-        </span>
-
-        <h1 class="mt-7 text-4xl xl:text-5xl font-extrabold leading-tight">
-          {{ "auth.hero_title" | translate }}
-          <span class="block text-green-300">
-            {{ "auth.hero_highlight" | translate }}
-          </span>
-        </h1>
-
-        <p class="mt-6 max-w-md text-base leading-8 text-white/75">
-          {{ "auth.hero_description" | translate }}
-        </p>
-      </div>
-
-      <div
-        class="flex items-center justify-between border-t border-white/15 pt-6 text-sm text-white/60"
-      >
-        <span>© {{ currentYear }} Codeland Academy</span>
-        <span>{{ "auth.empowering" | translate }}</span>
-      </div>
-    </section>
-
     <!-- Login Section -->
     <section
       class="login-panel flex flex-col justify-center px-6 py-10 sm:px-10 lg:px-12 xl:px-16"
@@ -158,29 +118,6 @@
       </div>
 
       <form [formGroup]="loginForm" (ngSubmit)="login()" class="space-y-5">
-        <!-- Account Type -->
-        <div>
-          <label
-            for="type"
-            class="mb-2 block text-sm font-semibold text-gray-700"
-          >
-            {{ "auth.fields.account_type" | translate }}
-          </label>
-
-          <select
-            id="type"
-            formControlName="type"
-            (change)="onAccountTypeChange()"
-            class="login-input"
-          >
-            @for (account of accountTypes; track account.value) {
-              <option [value]="account.value">
-                {{ account.labelKey | translate }}
-              </option>
-            }
-          </select>
-        </div>
-
         <!-- Email -->
         <div>
           <label
@@ -320,11 +257,6 @@
             <span>{{ "auth.signing_in" | translate }}</span>
           } @else {
             <span>{{ "auth.sign_in" | translate }}</span>
-            <span
-              class="text-lg transition-transform group-hover:translate-x-1"
-            >
-              →
-            </span>
           }
         </button>
       </form>
@@ -335,9 +267,50 @@
         </p>
 
         <p class="mt-3 text-xs text-gray-400">
-          © {{ currentYear }} Codeland Academy.
-          {{ "auth.all_rights_reserved" | translate }}
+          {{ "auth.all_rights_reserved" | translate }} © Codeland Academy
+          {{ currentYear }}
         </p>
+      </div>
+    </section>
+
+    
+    <!-- Brand Section -->
+    <section
+      class="brand-panel hidden lg:flex flex-col justify-between p-10 xl:p-12 text-white"
+    >
+      <div>
+        <img
+          src="/logo2.png"
+          alt="Codeland Academy"
+          class="w-48 h-auto object-contain"
+        />
+      </div>
+
+      <div class="my-12">
+        <span
+          class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white/90"
+        >
+          <span class="h-2 w-2 rounded-full bg-green-300"></span>
+          {{ "auth.brand_tagline" | translate }}
+        </span>
+
+        <h1 class="mt-7 text-4xl xl:text-5xl font-extrabold leading-tight">
+          {{ "auth.hero_title" | translate }}
+          <span class="block text-green-300">
+            {{ "auth.hero_highlight" | translate }}
+          </span>
+        </h1>
+
+        <p class="mt-6 max-w-md text-base leading-8 text-white/75">
+          {{ "auth.hero_description" | translate }}
+        </p>
+      </div>
+
+      <div
+        class="flex items-center justify-between border-t border-white/15 pt-6 text-sm text-white/60"
+      >
+        <span>© {{ currentYear }} Codeland Academy</span>
+        <span>{{ "auth.empowering" | translate }}</span>
       </div>
     </section>
   </div>

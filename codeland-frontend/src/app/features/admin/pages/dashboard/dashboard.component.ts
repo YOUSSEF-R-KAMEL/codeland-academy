@@ -37,22 +37,22 @@ export class DashboardComponent implements OnInit {
 
     return [
       {
-        key: 'dashboard.total_students',
+        key: 'admin.dashboard.total_students',
         value: this.formatCount(data?.studentsCount),
         icon: 'students',
       },
       {
-        key: 'dashboard.instructors',
+        key: 'admin.dashboard.instructors',
         value: this.formatCount(data?.instructorsCount),
         icon: 'instructors',
       },
       {
-        key: 'nav.courses',
+        key: 'admin.nav.courses',
         value: this.formatCount(data?.coursesCount),
         icon: 'courses',
       },
       {
-        key: 'nav.payments',
+        key: 'admin.nav.payments',
         value: data?.financial
           ? this.formatCurrency(data.financial.paid_amount)
           : '—',

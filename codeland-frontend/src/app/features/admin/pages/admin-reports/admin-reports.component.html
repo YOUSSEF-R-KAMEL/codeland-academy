@@ -1,0 +1,430 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Reports</h1>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+      Financial reports, payment activity and outstanding invoices.
+    </p>
+  </div>
+
+  <!-- Filters -->
+  <div
+    class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+  >
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <label
+          class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          From
+        </label>
+        <input
+          type="date"
+          [ngModel]="from()"
+          (ngModelChange)="from.set($event)"
+          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+        />
+      </div>
+
+      <div>
+        <label
+          class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          To
+        </label>
+        <input
+          type="date"
+          [ngModel]="to()"
+          (ngModelChange)="to.set($event)"
+          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+        />
+      </div>
+
+      <div class="flex items-end">
+        <button
+          type="button"
+          (click)="loadReports()"
+          [disabled]="loading()"
+          class="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+        >
+          Apply Filters
+        </button>
+      </div>
+
+      <div class="flex items-end">
+        <button
+          type="button"
+          (click)="resetFilters()"
+          [disabled]="loading()"
+          class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+        >
+          Reset
+        </button>
+      </div>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div
+      class="rounded-lg bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300"
+    >
+      {{ error() }}
+    </div>
+  }
+
+  @if (loading()) {
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-10 text-center text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+    >
+      Loading reports...
+    </div>
+  }
+
+  @if (payments(); as paymentReport) {
+    <!-- Payment Summary -->
+    <section class="space-y-4">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+        Payments Overview
+      </h2>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div
+          class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+        >
+          <p class="text-sm text-gray-500 dark:text-gray-400">Total Payments</p>
+          <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+            {{ paymentReport.payments_count }}
+          </p>
+        </div>
+
+        <div
+          class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+        >
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            Collected Payments
+          </p>
+          <p class="mt-2 text-2xl font-bold text-green-600">
+            {{ formatAmount(paymentReport.total_amount) }} EGP
+          </p>
+        </div>
+      </div>
+
+      <div class="grid gap-4 lg:grid-cols-2">
+        <!-- Payment Methods -->
+        <div
+          class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+        >
+          <h3 class="mb-4 font-semibold text-gray-900 dark:text-white">
+            Payments by Method
+          </h3>
+
+          @if (paymentReport.by_method.length === 0) {
+            <p class="text-sm text-gray-500">No payment data available.</p>
+          } @else {
+            <div class="space-y-4">
+              @for (
+                item of paymentReport.by_method;
+                track item.payment_method
+              ) {
+                <div>
+                  <div class="mb-1 flex justify-between gap-3 text-sm">
+                    <span class="font-medium text-gray-700 dark:text-gray-200">
+                      {{ paymentMethodLabel(item.payment_method) }}
+                    </span>
+                    <span class="text-gray-500 dark:text-gray-400">
+                      {{ formatAmount(item.total) }} EGP
+                    </span>
+                  </div>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ item.count }} payments
+                  </p>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Monthly Payments -->
+        <div
+          class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+        >
+          <h3 class="mb-4 font-semibold text-gray-900 dark:text-white">
+            Payments by Month
+          </h3>
+
+          @if (paymentReport.by_month.length === 0) {
+            <p class="text-sm text-gray-500">
+              No monthly payment data available.
+            </p>
+          } @else {
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead
+                  class="text-left text-xs uppercase text-gray-500 dark:text-gray-400"
+                >
+                  <tr>
+                    <th class="py-2">Month</th>
+                    <th class="py-2">Payments</th>
+                    <th class="py-2 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                  @for (item of paymentReport.by_month; track item.month) {
+                    <tr>
+                      <td class="py-3 text-gray-700 dark:text-gray-200">
+                        {{ item.month }}
+                      </td>
+                      <td class="py-3 text-gray-700 dark:text-gray-200">
+                        {{ item.count }}
+                      </td>
+                      <td
+                        class="py-3 text-right font-medium text-gray-900 dark:text-white"
+                      >
+                        {{ formatAmount(item.total) }} EGP
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+  }
+
+  @if (invoices(); as invoiceReport) {
+    <!-- Invoice Summary -->
+    <section class="space-y-4">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+        Invoices Overview
+      </h2>
+
+      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div
+          class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+        >
+          <p class="text-sm text-gray-500 dark:text-gray-400">Invoices</p>
+          <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+            {{ invoiceReport.count }}
+          </p>
+        </div>
+
+        <div
+          class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+        >
+          <p class="text-sm text-gray-500 dark:text-gray-400">Total Amount</p>
+          <p class="mt-2 text-xl font-bold text-gray-900 dark:text-white">
+            {{ formatAmount(invoiceReport.total_amount) }} EGP
+          </p>
+        </div>
+
+        <div
+          class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+        >
+          <p class="text-sm text-gray-500 dark:text-gray-400">Paid Amount</p>
+          <p class="mt-2 text-xl font-bold text-green-600">
+            {{ formatAmount(invoiceReport.paid_amount) }} EGP
+          </p>
+        </div>
+
+        <div
+          class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+        >
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            Remaining Amount
+          </p>
+          <p class="mt-2 text-xl font-bold text-orange-600">
+            {{ formatAmount(invoiceReport.remaining_amount) }} EGP
+          </p>
+        </div>
+      </div>
+
+      <div class="grid gap-4 lg:grid-cols-2">
+        <div
+          class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+        >
+          <h3 class="mb-4 font-semibold text-gray-900 dark:text-white">
+            Invoices by Status
+          </h3>
+
+          @if (invoiceReport.by_status.length === 0) {
+            <p class="text-sm text-gray-500">No invoice data available.</p>
+          } @else {
+            <div class="space-y-3">
+              @for (item of invoiceReport.by_status; track item.status) {
+                <div class="flex items-center justify-between gap-3">
+                  <span
+                    class="text-sm capitalize text-gray-700 dark:text-gray-200"
+                  >
+                    {{ statusLabel(item.status) }}
+                  </span>
+                  <span
+                    class="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-700 dark:bg-gray-700 dark:text-white"
+                  >
+                    {{ item.count }}
+                  </span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <div
+          class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+        >
+          <h3 class="mb-4 font-semibold text-gray-900 dark:text-white">
+            Invoices by Payment Plan
+          </h3>
+
+          @if (invoiceReport.by_plan.length === 0) {
+            <p class="text-sm text-gray-500">No payment plan data available.</p>
+          } @else {
+            <div class="space-y-3">
+              @for (item of invoiceReport.by_plan; track item.payment_plan) {
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <p
+                      class="text-sm font-medium capitalize text-gray-700 dark:text-gray-200"
+                    >
+                      {{ item.payment_plan }}
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                      {{ item.count }} invoices
+                    </p>
+                  </div>
+                  <span
+                    class="text-sm font-semibold text-gray-900 dark:text-white"
+                  >
+                    {{ formatAmount(item.total) }} EGP
+                  </span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+  }
+
+  @if (outstanding(); as outstandingReport) {
+    <!-- Outstanding Invoices -->
+    <section class="space-y-4">
+      <div>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+          Outstanding Invoices
+        </h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          Invoices with an unpaid balance.
+        </p>
+      </div>
+
+      <div
+        class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
+      >
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead
+              class="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-900 dark:text-gray-400"
+            >
+              <tr>
+                <th class="px-5 py-4">Student</th>
+                <th class="px-5 py-4">Invoice</th>
+                <th class="px-5 py-4">Due Date</th>
+                <th class="px-5 py-4">Total</th>
+                <th class="px-5 py-4">Paid</th>
+                <th class="px-5 py-4">Remaining</th>
+              </tr>
+            </thead>
+
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+              @if (outstandingReport.data.length === 0) {
+                <tr>
+                  <td colspan="6" class="px-5 py-8 text-center text-gray-500">
+                    No outstanding invoices.
+                  </td>
+                </tr>
+              } @else {
+                @for (invoice of outstandingReport.data; track invoice.id) {
+                  <tr>
+                    <td class="px-5 py-4">
+                      <p class="font-medium text-gray-900 dark:text-white">
+                        {{ invoice.enrollment?.student?.name || "—" }}
+                      </p>
+                      <p class="text-xs text-gray-500">
+                        {{ invoice.enrollment?.student?.email }}
+                      </p>
+                    </td>
+
+                    <td class="px-5 py-4 text-gray-700 dark:text-gray-200">
+                      {{ invoice.invoice_number }}
+                    </td>
+
+                    <td class="px-5 py-4 text-gray-600 dark:text-gray-300">
+                      {{
+                        invoice.due_at
+                          ? (invoice.due_at | date: "mediumDate")
+                          : "—"
+                      }}
+                    </td>
+
+                    <td class="px-5 py-4 text-gray-700 dark:text-gray-200">
+                      {{ formatAmount(invoice.total_amount) }}
+                      {{ invoice.currency }}
+                    </td>
+
+                    <td class="px-5 py-4 text-green-600">
+                      {{ formatAmount(invoice.paid_amount) }}
+                      {{ invoice.currency }}
+                    </td>
+
+                    <td class="px-5 py-4 font-semibold text-orange-600">
+                      {{ formatAmount(getRemaining(invoice)) }}
+                      {{ invoice.currency }}
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div
+          class="flex flex-col gap-3 border-t border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-700"
+        >
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            {{ outstandingReport.total }} outstanding invoices
+          </p>
+
+          <div class="flex items-center gap-3">
+            <button
+              type="button"
+              (click)="changePage(outstandingReport.current_page - 1)"
+              [disabled]="outstandingReport.current_page <= 1 || loading()"
+              class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm disabled:opacity-40 dark:border-gray-600 dark:text-white"
+            >
+              Previous
+            </button>
+
+            <span class="text-sm text-gray-600 dark:text-gray-300">
+              {{ outstandingReport.current_page }} /
+              {{ outstandingReport.last_page }}
+            </span>
+
+            <button
+              type="button"
+              (click)="changePage(outstandingReport.current_page + 1)"
+              [disabled]="
+                outstandingReport.current_page >= outstandingReport.last_page ||
+                loading()
+              "
+              class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm disabled:opacity-40 dark:border-gray-600 dark:text-white"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  }
+</div>

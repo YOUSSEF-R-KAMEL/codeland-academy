@@ -1,0 +1,221 @@
+<div class="min-h-screen bg-[var(--color-background)] text-[var(--color-text)]">
+  @if (isMobileMenuOpen()) {
+    <div
+      class="fixed inset-0 z-40 bg-black/50 lg:hidden"
+      (click)="closeMobileMenu()"
+    ></div>
+  }
+
+  <!-- Mobile Sidebar -->
+  <aside
+    class="fixed inset-y-0 z-50 flex w-72 flex-col bg-[var(--color-primary)] text-white shadow-2xl transition-transform duration-300 lg:hidden"
+    [class.right-0]="languageService.isArabic"
+    [class.left-0]="!languageService.isArabic"
+    [class.translate-x-full]="!isMobileMenuOpen() && languageService.isArabic"
+    [class.-translate-x-full]="!isMobileMenuOpen() && !languageService.isArabic"
+  >
+    <div class="border-b border-white/10 px-5 py-4">
+      <button
+        type="button"
+        (click)="closeMobileMenu()"
+        class="flex h-10 w-full items-center justify-end rounded-xl text-xl text-white/80 hover:bg-white/10"
+        aria-label="Close menu"
+      >
+        ✕
+      </button>
+
+      <img
+        src="/logo2.png"
+        alt="Codeland Academy"
+        class="mx-auto mt-2 h-auto w-full max-w-[170px] object-contain"
+      />
+
+      <p class="mt-3 text-center text-xs font-medium text-white/55">
+        {{ "student.portal_title" | translate }}
+      </p>
+    </div>
+
+    <nav class="flex-1 space-y-2 overflow-y-auto px-4 py-6">
+      <p class="mb-4 px-3 text-xs font-bold tracking-wider text-white/45">
+        {{ "student.nav.main_menu" | translate }}
+      </p>
+
+      <a
+        routerLink="/student/feedback"
+        routerLinkActive="bg-[#259b2b] text-white shadow-md"
+        [routerLinkActiveOptions]="{ exact: true }"
+        (click)="closeMobileMenu()"
+        class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition hover:bg-white/10 hover:text-white"
+      >
+        <span class="text-lg">✉</span>
+        <span>{{ "student.nav.feedback" | translate }}</span>
+      </a>
+
+      <a
+        routerLink="/student/feedback/new"
+        routerLinkActive="bg-[#259b2b] text-white shadow-md"
+        (click)="closeMobileMenu()"
+        class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition hover:bg-white/10 hover:text-white"
+      >
+        <span class="text-lg">＋</span>
+        <span>{{ "student.nav.new_feedback" | translate }}</span>
+      </a>
+
+      <div class="mt-6 border-t border-white/10 pt-4">
+        <button
+          type="button"
+          (click)="logout()"
+          [disabled]="isLoggingOut()"
+          class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-500/15 hover:text-white disabled:opacity-50"
+        >
+          <span class="text-lg">↪</span>
+          <span>{{ "admin.nav.logout" | translate }}</span>
+        </button>
+      </div>
+    </nav>
+
+    <div class="border-t border-white/10 px-6 py-5">
+      <p class="text-xs font-semibold text-white/70">Codeland Academy</p>
+      <p class="mt-1 text-[11px] text-white/40">Student Portal v1.0</p>
+    </div>
+  </aside>
+
+  <div class="flex min-h-screen">
+    <!-- Desktop Sidebar -->
+    <aside
+      class="hidden w-72 shrink-0 flex-col bg-[var(--color-primary)] text-white lg:flex"
+    >
+      <div class="border-b border-white/10 px-5 py-6">
+        <img
+          src="/logo2.png"
+          alt="Codeland Academy"
+          class="mx-auto h-auto w-full max-w-[120px] object-contain"
+        />
+
+        <p class="mt-4 text-center text-xs font-medium text-white/60">
+          {{ "student.portal_title" | translate }}
+        </p>
+      </div>
+
+      <nav class="flex-1 space-y-2 overflow-y-auto px-4 py-6">
+        <p class="mb-4 px-3 text-xs font-bold tracking-wider text-white/45">
+          {{ "student.nav.main_menu" | translate }}
+        </p>
+
+        <a
+          routerLink="/student/feedback"
+          routerLinkActive="nav-active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition hover:bg-white/10 hover:text-white [&.nav-active]:!bg-[#259b2b] [&.nav-active]:!text-white [&.nav-active]:shadow-md"
+        >
+          <span class="text-lg">✉</span>
+          <span>{{ "student.nav.feedback" | translate }}</span>
+        </a>
+
+        <a
+          routerLink="/student/feedback/new"
+          routerLinkActive="nav-active"
+          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition hover:bg-white/10 hover:text-white [&.nav-active]:!bg-[#259b2b] [&.nav-active]:!text-white [&.nav-active]:shadow-md"
+        >
+          <span class="text-lg">＋</span>
+          <span>{{ "student.nav.new_feedback" | translate }}</span>
+        </a>
+
+        <div class="mt-6 border-t border-white/10 pt-4">
+          <button
+            type="button"
+            (click)="logout()"
+            [disabled]="isLoggingOut()"
+            class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-500/15 hover:text-white disabled:opacity-50"
+          >
+            <span class="text-lg">↪</span>
+            <span>{{ "admin.nav.logout" | translate }}</span>
+          </button>
+        </div>
+      </nav>
+
+      <div class="border-t border-white/10 px-6 py-5">
+        <p class="text-xs font-semibold text-white/70">Codeland Academy</p>
+        <p class="mt-1 text-[11px] text-white/40">Student Portal v1.0</p>
+      </div>
+    </aside>
+
+    <!-- Main Area -->
+    <div class="flex min-w-0 flex-1 flex-col">
+      <header
+        class="flex h-20 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 md:px-8"
+      >
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            (click)="toggleMobileMenu()"
+            class="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--color-border)] text-xl text-[var(--color-text)] lg:hidden"
+            aria-label="Open menu"
+          >
+            ☰
+          </button>
+
+          <div>
+            <h2 class="text-base font-bold text-[var(--color-text)] md:text-lg">
+              {{ "student.portal_title" | translate }}
+            </h2>
+            <p class="mt-1 hidden text-xs text-[var(--color-muted)] sm:block">
+              {{ "student.welcome_description" | translate }}
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 md:gap-3">
+          <button
+            type="button"
+            (click)="languageService.toggleLanguage()"
+            class="flex h-10 items-center gap-2 rounded-xl border border-[var(--color-border)] px-3 text-sm font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-background)]"
+          >
+            <span>文</span>
+            <span>{{ languageService.isArabic ? "EN" : "عربي" }}</span>
+          </button>
+
+          <button
+            type="button"
+            (click)="themeService.toggleTheme()"
+            class="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--color-border)] text-[var(--color-text)] transition hover:bg-[var(--color-background)]"
+            [attr.aria-label]="
+              themeService.isDark
+                ? 'Switch to light mode'
+                : 'Switch to dark mode'
+            "
+          >
+            @if (themeService.isDark) {
+              <span>☀</span>
+            } @else {
+              <span>☾</span>
+            }
+          </button>
+
+          <div
+            class="flex items-center gap-2 border-s border-[var(--color-border)] ps-3 md:gap-3 md:ps-4"
+          >
+            <div class="hidden text-start sm:block">
+              <p class="text-sm font-bold text-[var(--color-text)]">
+                {{ "common.student" | translate }}
+              </p>
+              <p class="text-xs text-[var(--color-muted)]">
+                {{ "student.portal_title" | translate }}
+              </p>
+            </div>
+
+            <div
+              class="flex h-10 w-10 items-center justify-center rounded-full bg-[#032650] font-bold text-white md:h-11 md:w-11"
+            >
+              S
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="flex-1 p-4 md:p-8">
+        <router-outlet></router-outlet>
+      </main>
+    </div>
+  </div>
+</div>

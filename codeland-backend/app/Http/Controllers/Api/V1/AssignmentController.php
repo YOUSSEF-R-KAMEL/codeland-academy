@@ -37,7 +37,7 @@ class AssignmentController extends Controller
         }
 
         return response()->json([
-            'data' => $query->latest()->paginate(15),
+            'data' => $query->latest()->get(),
         ]);
     }
 

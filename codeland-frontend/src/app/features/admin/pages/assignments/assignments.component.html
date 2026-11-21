@@ -1,0 +1,545 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div
+    class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+  >
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+        {{ "admin.assignments.title" | translate }}
+      </h1>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        {{ "admin.assignments.subtitle" | translate }}
+      </p>
+    </div>
+
+    <button
+      type="button"
+      (click)="openCreateForm()"
+      class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:shadow-lg"
+    >
+      <span class="text-lg">+</span>
+      {{ "admin.assignments.create" | translate }}
+    </button>
+  </div>
+
+  <!-- Statistics -->
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+    >
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        {{ "admin.assignments.total" | translate }}
+      </p>
+      <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+        {{ filteredAssignments().length }}
+      </p>
+    </div>
+
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+    >
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        {{ "admin.assignments.published" | translate }}
+      </p>
+      <p class="mt-2 text-2xl font-bold text-green-600">
+        {{ publishedCount() }}
+      </p>
+    </div>
+
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+    >
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        {{ "admin.assignments.drafts" | translate }}
+      </p>
+      <p class="mt-2 text-2xl font-bold text-amber-600">
+        {{ draftCount() }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Assignment Form -->
+  @if (showCreateForm()) {
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6"
+    >
+      <div
+        class="mb-6 flex items-center justify-between border-b border-gray-200 pb-4 dark:border-gray-700"
+      >
+        <div>
+          <h2 class="text-lg font-bold text-gray-900 dark:text-white">
+            {{
+              (editingAssignmentId()
+                ? "admin.assignments.edit_title"
+                : "admin.assignments.create_title"
+              ) | translate
+            }}
+          </h2>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {{ "admin.assignments.create_subtitle" | translate }}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          (click)="closeCreateForm()"
+          class="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+          [attr.aria-label]="'common.close' | translate"
+        >
+          ✕
+        </button>
+      </div>
+
+      @if (createError()) {
+        <div
+          class="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-400"
+        >
+          {{ createError() | translate }}
+        </div>
+      }
+
+      <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <!-- Course -->
+        <div>
+          <label
+            for="assignment-course"
+            class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            {{ "admin.assignments.course" | translate }}
+            <span class="text-red-500">*</span>
+          </label>
+
+          <app-select
+            inputId="assignment-course"
+            [options]="courseOptions()"
+            [ngModel]="selectedCourseId()"
+            (ngModelChange)="onCourseChange(+$event)"
+            [placeholder]="'admin.assignments.select_course' | translate"
+            [emptyText]="'admin.assignments.no_courses' | translate"
+            [disabled]="loadingCourses() || savingAssignment()"
+          />
+        </div>
+
+        <!-- Lesson -->
+        <div>
+          <label
+            for="assignment-lesson"
+            class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            {{ "admin.assignments.lesson" | translate }}
+            <span class="text-red-500">*</span>
+          </label>
+
+          <app-select
+            inputId="assignment-lesson"
+            [options]="lessonOptions()"
+            [ngModel]="newAssignment().course_lesson_id"
+            (ngModelChange)="updateNewAssignment('course_lesson_id', +$event)"
+            [placeholder]="'admin.assignments.select_lesson' | translate"
+            [emptyText]="'admin.assignments.no_lessons' | translate"
+            [disabled]="
+              !selectedCourseId() || loadingLessons() || savingAssignment()
+            "
+          />
+        </div>
+
+        <!-- Title -->
+        <div class="md:col-span-2">
+          <label
+            for="assignment-title"
+            class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            {{ "admin.assignments.assignment_title" | translate }}
+            <span class="text-red-500">*</span>
+          </label>
+
+          <input
+            id="assignment-title"
+            type="text"
+            [ngModel]="newAssignment().title"
+            (ngModelChange)="updateNewAssignment('title', $event)"
+            [placeholder]="'admin.assignments.title_placeholder' | translate"
+            maxlength="255"
+            [disabled]="savingAssignment()"
+            class="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm outline-none transition focus:border-blue-500"
+          />
+        </div>
+
+        <!-- Instructions -->
+        <div class="md:col-span-2">
+          <label
+            for="assignment-instructions"
+            class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            {{ "admin.assignments.instructions" | translate }}
+            <span class="text-red-500">*</span>
+          </label>
+
+          <textarea
+            id="assignment-instructions"
+            rows="5"
+            [ngModel]="newAssignment().instructions"
+            (ngModelChange)="updateNewAssignment('instructions', $event)"
+            [placeholder]="
+              'admin.assignments.instructions_placeholder' | translate
+            "
+            [disabled]="savingAssignment()"
+            class="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm outline-none transition focus:border-blue-500"
+          ></textarea>
+        </div>
+
+        <!-- Resource URL -->
+        <div class="md:col-span-2">
+          <label
+            for="assignment-resource"
+            class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            {{ "admin.assignments.resource_url" | translate }}
+          </label>
+
+          <input
+            id="assignment-resource"
+            type="url"
+            [ngModel]="newAssignment().resource_url"
+            (ngModelChange)="updateNewAssignment('resource_url', $event)"
+            placeholder="https://example.com"
+            [disabled]="savingAssignment()"
+            class="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm outline-none transition focus:border-blue-500"
+          />
+        </div>
+
+        <!-- Due Date -->
+        <div>
+          <label
+            for="assignment-due-date"
+            class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            {{ "admin.assignments.due_date" | translate }}
+          </label>
+
+          <input
+            id="assignment-due-date"
+            type="datetime-local"
+            [ngModel]="newAssignment().due_at"
+            (ngModelChange)="updateNewAssignment('due_at', $event)"
+            [disabled]="savingAssignment()"
+            class="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm outline-none transition focus:border-blue-500"
+          />
+        </div>
+
+        <!-- Publish -->
+        <div class="flex items-center">
+          <label
+            class="flex cursor-pointer items-center gap-3 text-sm text-gray-700 dark:text-gray-300"
+          >
+            <input
+              type="checkbox"
+              [ngModel]="newAssignment().is_published"
+              (ngModelChange)="updateNewAssignment('is_published', $event)"
+              [disabled]="savingAssignment()"
+              class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            <span>{{
+              "admin.assignments.publish_immediately" | translate
+            }}</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div
+        class="mt-6 flex flex-col-reverse gap-3 border-t border-gray-200 pt-5 dark:border-gray-700 sm:flex-row sm:justify-end"
+      >
+        <button
+          type="button"
+          (click)="closeCreateForm()"
+          [disabled]="savingAssignment()"
+          class="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+        >
+          {{ "common.cancel" | translate }}
+        </button>
+
+        <button
+          type="button"
+          (click)="saveAssignment()"
+          [disabled]="savingAssignment() || loadingLessons()"
+          class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
+        >
+          @if (savingAssignment()) {
+            <span
+              class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+            ></span>
+            {{ "admin.assignments.saving" | translate }}
+          } @else {
+            {{
+              (editingAssignmentId()
+                ? "admin.assignments.update"
+                : "admin.assignments.save"
+              ) | translate
+            }}
+          }
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Filters -->
+  <div
+    class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
+  >
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div class="md:col-span-2">
+        <label
+          for="assignment-search"
+          class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          {{ "admin.assignments.search" | translate }}
+        </label>
+
+        <input
+          id="assignment-search"
+          type="search"
+          [ngModel]="searchTerm()"
+          (ngModelChange)="onSearchChange($event)"
+          [placeholder]="'admin.assignments.search_placeholder' | translate"
+          class="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm outline-none transition focus:border-blue-500"
+        />
+      </div>
+
+      <div>
+        <label
+          for="assignment-status"
+          class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          {{ "admin.assignments.status" | translate }}
+        </label>
+
+        <app-select
+          inputId="assignment-status"
+          [options]="statusOptions"
+          [ngModel]="statusFilter()"
+          (ngModelChange)="onStatusFilterChange($event)"
+          [placeholder]="'admin.assignments.all_statuses' | translate"
+          [emptyText]="'admin.assignments.all_statuses' | translate"
+          [translateLabels]="true"
+        />
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div
+      class="rounded-xl border border-gray-200 bg-white px-6 py-16 text-center dark:border-gray-700 dark:bg-gray-800"
+    >
+      <div
+        class="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600"
+      ></div>
+      <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">
+        {{ "common.loading" | translate }}
+      </p>
+    </div>
+  }
+
+  <!-- Error -->
+  @else if (error()) {
+    <div
+      class="rounded-xl border border-red-200 bg-red-50 p-6 text-center dark:border-red-900 dark:bg-red-950/30"
+    >
+      <p class="text-sm text-red-700 dark:text-red-400">
+        {{ error() | translate }}
+      </p>
+      <button
+        type="button"
+        (click)="loadAssignments()"
+        class="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
+      >
+        {{ "common.retry" | translate }}
+      </button>
+    </div>
+  }
+
+  <!-- Assignments Table -->
+  @else {
+    <div
+      class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
+    >
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[900px] text-start">
+          <thead class="bg-gray-50 dark:bg-gray-700/50">
+            <tr>
+              <th
+                class="px-5 py-4 text-start text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400"
+              >
+                {{ "admin.assignments.assignment" | translate }}
+              </th>
+              <th
+                class="px-5 py-4 text-start text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400"
+              >
+                {{ "admin.assignments.course" | translate }}
+              </th>
+              <th
+                class="px-5 py-4 text-start text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400"
+              >
+                {{ "admin.assignments.submissions" | translate }}
+              </th>
+              <th
+                class="px-5 py-4 text-start text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400"
+              >
+                {{ "admin.assignments.due_date" | translate }}
+              </th>
+              <th
+                class="px-5 py-4 text-start text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400"
+              >
+                {{ "admin.assignments.status" | translate }}
+              </th>
+              <th
+                class="px-5 py-4 text-end text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400"
+              >
+                {{ "admin.assignments.action" | translate }}
+              </th>
+            </tr>
+          </thead>
+
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            @for (assignment of paginatedAssignments(); track assignment.id) {
+              <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                <td class="px-5 py-4">
+                  <p class="font-semibold text-gray-900 dark:text-white">
+                    {{ assignment.title }}
+                  </p>
+                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {{ assignment.course_lesson.title }}
+                  </p>
+                </td>
+
+                <td class="px-5 py-4">
+                  <span class="text-sm text-gray-700 dark:text-gray-300">
+                    {{ assignment.course_lesson.course.title || "-" }}
+                  </span>
+                </td>
+
+                <td class="px-5 py-4">
+                  <span
+                    class="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                  >
+                    {{ assignment.submissions_count }}
+                  </span>
+                </td>
+
+                <td class="px-5 py-4">
+                  <span class="text-sm text-gray-600 dark:text-gray-400">
+                    @if (assignment.due_at) {
+                      {{ assignment.due_at | date: "mediumDate" }}
+                    } @else {
+                      -
+                    }
+                  </span>
+                </td>
+
+                <td class="px-5 py-4">
+                  @if (assignment.is_published) {
+                    <span
+                      class="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700 dark:bg-green-950/40 dark:text-green-400"
+                    >
+                      {{ "admin.assignments.published" | translate }}
+                    </span>
+                  } @else {
+                    <span
+                      class="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
+                    >
+                      {{ "admin.assignments.drafts" | translate }}
+                    </span>
+                  }
+                </td>
+
+                <!-- Actions -->
+                <td class="px-5 py-4">
+                  <div class="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      (click)="editAssignment(assignment)"
+                      [disabled]="deletingAssignmentId() === assignment.id"
+                      class="rounded-lg bg-blue-100 px-3 py-2 text-sm font-semibold text-blue-700 transition-all duration-300 hover:!text-white hover:bg-blue-600 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:!bg-blue-700"
+                      [title]="'common.edit' | translate"
+                    >
+                    {{ "common.edit" | translate }}
+
+                    </button>
+
+                    <button
+                      type="button"
+                      (click)="deleteAssignment(assignment)"
+                      [disabled]="deletingAssignmentId() === assignment.id"
+                      class="rounded-lg bg-red-100 px-3 py-2 text-sm font-semibold text-red-700 transition-all duration-300 hover:!bg-red-600 hover:!text-white hover:shadow-md active:scale-95 dark:bg-red-900/30 dark:text-red-300"
+                      [title]="'common.delete' | translate"
+                    >
+                      @if (deletingAssignmentId() === assignment.id) {
+                        <span
+                          class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-red-600 border-t-transparent"
+                        ></span>
+                      } @else {
+                      {{ "common.delete" | translate }}
+                      }
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="px-5 py-14 text-center">
+                  <p class="font-medium text-gray-700 dark:text-gray-300">
+                    {{ "admin.assignments.no_assignments" | translate }}
+                  </p>
+                  <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    {{
+                      "admin.assignments.no_assignments_description" | translate
+                    }}
+                  </p>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      @if (lastPage() > 1) {
+        <div
+          class="flex flex-col gap-3 border-t border-gray-200 px-5 py-4 dark:border-gray-700 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            {{ "admin.assignments.total_records" | translate }}:
+            <span class="font-semibold text-gray-900 dark:text-white">{{
+              total()
+            }}</span>
+          </p>
+
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              (click)="changePage(currentPage() - 1)"
+              [disabled]="currentPage() <= 1"
+              class="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              {{ "common.previous" | translate }}
+            </button>
+
+            <span class="px-2 text-sm text-gray-600 dark:text-gray-400">
+              {{ currentPage() }} / {{ lastPage() }}
+            </span>
+
+            <button
+              type="button"
+              (click)="changePage(currentPage() + 1)"
+              [disabled]="currentPage() >= lastPage()"
+              class="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              {{ "common.next" | translate }}
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

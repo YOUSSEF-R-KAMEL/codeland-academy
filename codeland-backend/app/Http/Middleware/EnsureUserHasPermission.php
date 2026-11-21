@@ -22,10 +22,22 @@ class EnsureUserHasPermission
             ], 401);
         }
 
-        if (!$user->hasAnyPermission($permissions)) {
+        $hasPermission = $user->hasAnyPermission($permissions);
+
+        if (!$hasPermission) {
             return response()->json([
                 'success' => false,
-                'message' => 'ليس لديك صلاحية تنفيذ هذا الإجراء.',
+                'message' => 'Permission denied.',
+                'debug' => [
+                    'method' => $request->method(),
+                    'path' => $request->path(),
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'permissions_requested' => $permissions,
+                    'roles' => $user->roles()->pluck('slug'),
+                    'has_manage_payments' => $user->hasPermission('manage_payments'),
+                    'has_any_permission' => $hasPermission,
+                ],
             ], 403);
         }
 

@@ -3,11 +3,11 @@
   <div class="flex flex-wrap items-center justify-between gap-4">
     <div>
       <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-        {{ "groups.title" | translate }}
+        {{ "admin.groups.title" | translate }}
       </h1>
 
       <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-        {{ "groups.subtitle" | translate }}
+        {{ "admin.groups.subtitle" | translate }}
       </p>
     </div>
 
@@ -18,7 +18,7 @@
       class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-300 hover:bg-blue-700 hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
     >
       <span class="me-2">+</span>
-      {{ "groups.add" | translate }}
+      {{ "admin.groups.add" | translate }}
     </button>
   </div>
 
@@ -30,7 +30,7 @@
       for="course"
       class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200"
     >
-      {{ "groups.select_course" | translate }}
+      {{ "admin.groups.select_course" | translate }}
     </label>
 
     <app-select
@@ -39,15 +39,15 @@
       [ngModel]="selectedCourseId()"
       (ngModelChange)="onCourseChange($event)"
       [disabled]="loadingCourses() || courses().length === 0"
-      [placeholder]="'groups.select_course' | translate"
-      [emptyText]="'groups.no_courses' | translate"
+      [placeholder]="'admin.groups.select_course' | translate"
+      [emptyText]="'admin.groups.no_courses' | translate"
     />
   </div>
 
   <!-- Loading -->
   @if (loadingGroups()) {
     <div class="py-12 text-center text-gray-500">
-      {{ "groups.loading" | translate }}
+      {{ "admin.groups.loading" | translate }}
     </div>
   }
 
@@ -57,11 +57,11 @@
       class="rounded-2xl border border-dashed border-gray-300 p-12 text-center dark:border-gray-700"
     >
       <h3 class="font-semibold text-gray-800 dark:text-white">
-        {{ "groups.empty" | translate }}
+        {{ "admin.groups.empty" | translate }}
       </h3>
 
       <p class="mt-2 text-sm text-gray-500">
-        {{ "groups.empty_description" | translate }}
+        {{ "admin.groups.empty_description" | translate }}
       </p>
     </div>
   }
@@ -88,31 +88,31 @@
             <span
               class="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
             >
-              {{ "groups.status." + group.status | translate }}
+              {{ "admin.groups.status." + group.status | translate }}
             </span>
           </div>
 
           <!-- Card Information -->
           <div class="mt-5 space-y-3 text-sm text-gray-600 dark:text-gray-300">
             <div class="flex justify-between">
-              <span>{{ "groups.capacity" | translate }}</span>
+              <span>{{ "admin.groups.capacity" | translate }}</span>
               <span>
                 {{ group.enrollments_count }}
               </span>
             </div>
 
             <div class="flex justify-between">
-              <span>{{ "groups.start_date" | translate }}</span>
+              <span>{{ "admin.groups.start_date" | translate }}</span>
               <span>{{ group.start_date | date: "yyyy-MM-dd" }}</span>
             </div>
 
             <div class="flex justify-between">
-              <span>{{ "groups.end_date" | translate }}</span>
+              <span>{{ "admin.groups.end_date" | translate }}</span>
               <span>{{ group.end_date | date: "yyyy-MM-dd" }}</span>
             </div>
 
             <div class="flex justify-between">
-              <span>{{ "groups.instructors" | translate }}</span>
+              <span>{{ "admin.groups.instructors" | translate }}</span>
               <span>{{ group.instructors.length }}</span>
             </div>
           </div>
@@ -124,14 +124,14 @@
             <button
               type="button"
               [routerLink]="['/admin/groups', group.id, 'sessions']"
-              class="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-300"
+              class="rounded-lg bg-indigo-100 px-3 py-1.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 hover:!bg-indigo-400 hover:!text-white"
             >
-              {{ "class_sessions.title" | translate }}
+              {{ "admin.class_sessions.title" | translate }}
             </button>
             <button
               type="button"
               (click)="openEditModal(group)"
-              class="flex-1 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition-all duration-300 hover:!bg-blue-600 hover:!text-white hover:shadow-md active:scale-95 dark:bg-blue-900/30 dark:text-blue-300"
+              class="flex-1 rounded-lg bg-blue-100 px-3 py-2 text-sm font-semibold text-blue-700 transition-all duration-300 hover:!bg-blue-600 hover:!text-white hover:shadow-md active:scale-95 dark:bg-blue-900/30 dark:text-blue-300"
             >
               {{ "common.edit" | translate }}
             </button>
@@ -139,7 +139,7 @@
             <button
               type="button"
               (click)="deleteGroup(group)"
-              class="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 transition-all duration-300 hover:!bg-red-600 hover:!text-white hover:shadow-md active:scale-95 dark:bg-red-900/30 dark:text-red-300"
+              class="rounded-lg bg-red-100 px-3 py-2 text-sm font-semibold text-red-700 transition-all duration-300 hover:!bg-red-600 hover:!text-white hover:shadow-md active:scale-95 dark:bg-red-900/30 dark:text-red-300"
             >
               {{ "common.delete" | translate }}
             </button>
@@ -167,13 +167,13 @@
         <div>
           <h2 class="text-xl font-bold text-gray-900 dark:text-white">
             {{
-              (selectedGroupId() ? "groups.edit_title" : "groups.add_title")
+              (selectedGroupId() ? "admin.groups.edit_title" : "admin.groups.add_title")
                 | translate
             }}
           </h2>
 
           <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {{ "groups.form_subtitle" | translate }}
+            {{ "admin.groups.form_subtitle" | translate }}
           </p>
         </div>
 
@@ -199,21 +199,21 @@
             <label
               class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200"
             >
-              {{ "groups.name" | translate }}
+              {{ "admin.groups.name" | translate }}
             </label>
 
             <input
               type="text"
               formControlName="name"
               class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-              [placeholder]="'groups.name_placeholder' | translate"
+              [placeholder]="'admin.groups.name_placeholder' | translate"
             />
 
             @if (
               groupForm.controls.name.touched && groupForm.controls.name.invalid
             ) {
               <p class="mt-1 text-xs text-red-600">
-                {{ "groups.required" | translate }}
+                {{ "admin.groups.required" | translate }}
               </p>
             }
           </div>
@@ -222,21 +222,21 @@
             <label
               class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200"
             >
-              {{ "groups.code" | translate }}
+              {{ "admin.groups.code" | translate }}
             </label>
 
             <input
               type="text"
               formControlName="code"
               class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-              [placeholder]="'groups.code_placeholder' | translate"
+              [placeholder]="'admin.groups.code_placeholder' | translate"
             />
 
             @if (
               groupForm.controls.code.touched && groupForm.controls.code.invalid
             ) {
               <p class="mt-1 text-xs text-red-600">
-                {{ "groups.required" | translate }}
+                {{ "admin.groups.required" | translate }}
               </p>
             }
           </div>
@@ -248,7 +248,7 @@
             <label
               class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200"
             >
-              {{ "groups.capacity" | translate }}
+              {{ "admin.groups.capacity" | translate }}
             </label>
 
             <input
@@ -264,14 +264,14 @@
             <label
               class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200"
             >
-              {{ "groups.status_label" | translate }}
+              {{ "admin.groups.status_label" | translate }}
             </label>
 
             <div>
               <app-select
                 [options]="groupStatusOptions"
                 formControlName="status"
-                [placeholder]="'groups.status.planned' | translate"
+                [placeholder]="'admin.groups.status.planned' | translate"
                 [translateLabels]="true"
                 inputId="group-status"
               />
@@ -285,7 +285,7 @@
             <label
               class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200"
             >
-              {{ "groups.start_date" | translate }}
+              {{ "admin.groups.start_date" | translate }}
             </label>
 
             <input
@@ -299,7 +299,7 @@
             <label
               class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200"
             >
-              {{ "groups.end_date" | translate }}
+              {{ "admin.groups.end_date" | translate }}
             </label>
 
             <input
@@ -315,14 +315,14 @@
           <label
             class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200"
           >
-            {{ "groups.notes" | translate }}
+            {{ "admin.groups.notes" | translate }}
           </label>
 
           <textarea
             formControlName="notes"
             rows="3"
             class="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-            [placeholder]="'groups.notes_placeholder' | translate"
+            [placeholder]="'admin.groups.notes_placeholder' | translate"
           ></textarea>
         </div>
 
@@ -336,7 +336,7 @@
             [disabled]="saving()"
             class="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
           >
-            {{ "groups.cancel" | translate }}
+            {{ "admin.groups.cancel" | translate }}
           </button>
 
           <button
@@ -345,10 +345,10 @@
             class="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-all duration-300 hover:bg-blue-700 hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
             @if (saving()) {
-              {{ "groups.saving" | translate }}
+              {{ "admin.groups.saving" | translate }}
             } @else {
               {{
-                (selectedGroupId() ? "groups.save" : "groups.add") | translate
+                (selectedGroupId() ? "admin.groups.save" : "admin.groups.add") | translate
               }}
             }
           </button>

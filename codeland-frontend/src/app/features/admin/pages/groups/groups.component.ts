@@ -13,8 +13,11 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import Swal from 'sweetalert2';
 
 import { CoursesService } from '../../services/courses.service';
 import { GroupsService } from '../../services/groups.service';
@@ -32,13 +35,18 @@ import {
   SelectComponent,
   SelectOption,
 } from '../../../../shared/components/select.component';
-import { DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-groups',
   standalone: true,
-  imports: [TranslatePipe, FormsModule, ReactiveFormsModule, SelectComponent, DatePipe,RouterLink],
+  imports: [
+    TranslatePipe,
+    FormsModule,
+    ReactiveFormsModule,
+    SelectComponent,
+    DatePipe,
+    RouterLink,
+  ],
   templateUrl: './groups.component.html',
   styleUrl: './groups.component.scss',
 })
@@ -48,6 +56,7 @@ export class GroupsComponent implements OnInit {
   private readonly coursesService = inject(CoursesService);
   private readonly groupsService = inject(GroupsService);
   private readonly toastService = inject(ToastService);
+  private readonly translate = inject(TranslateService);
 
   readonly courses = signal<Course[]>([]);
   readonly groups = signal<Group[]>([]);
@@ -67,11 +76,12 @@ export class GroupsComponent implements OnInit {
       label: course.title,
     })),
   );
+
   readonly groupStatusOptions = [
-    { value: 'planned', label: 'groups.status.planned' },
-    { value: 'active', label: 'groups.status.active' },
-    { value: 'completed', label: 'groups.status.completed' },
-    { value: 'cancelled', label: 'groups.status.cancelled' },
+    { value: 'planned', label: 'admin.groups.status.planned' },
+    { value: 'active', label: 'admin.groups.status.active' },
+    { value: 'completed', label: 'admin.groups.status.completed' },
+    { value: 'cancelled', label: 'admin.groups.status.cancelled' },
   ];
 
   readonly groupForm = this.fb.group({
@@ -257,27 +267,71 @@ export class GroupsComponent implements OnInit {
     });
   }
 
-  deleteGroup(group: Group): void {
+  async deleteGroup(group: Group): Promise<void> {
     const courseId = this.selectedCourseId();
 
     if (!courseId) return;
 
-    if (!confirm(`Are you sure you want to delete "${group.name}"?`)) {
-      return;
-    }
+    const result = await Swal.fire({
+      title: this.translate.instant('admin.groups.delete_confirmation_title'),
+      text: this.translate.instant('admin.groups.delete_confirmation_text', {
+        name: group.name,
+      }),
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: this.translate.instant('common.delete'),
+      cancelButtonText: this.translate.instant('common.cancel'),
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) return;
 
     this.groupsService
       .deleteGroup(courseId, group.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (response) => {
-          this.toastService.success(response.message);
+        next: () => {
+          Swal.fire({
+            icon: 'success',
+            title: this.translate.instant('common.success'),
+            text: this.translate.instant('groups.delete_success'),
+            confirmButtonText: this.translate.instant('common.ok'),
+            confirmButtonColor: '#16a34a',
+          });
+
           this.loadGroups();
         },
         error: (error: HttpErrorResponse) => {
-          this.toastService.error(
-            error.error?.message || 'Failed to delete group.',
-          );
+          const message = error.error?.message;
+
+          if (message?.includes('related academic records')) {
+            Swal.fire({
+              icon: 'error',
+              title: this.translate.instant('common.error'),
+              text: this.translate.instant(
+                'groups.delete_has_academic_records',
+              ),
+              confirmButtonText: this.translate.instant('common.ok'),
+              confirmButtonColor: '#dc2626',
+            });
+          } else {
+            Swal.fire({
+              icon: 'error',
+              title: this.translate.instant('common.error'),
+              text: message || this.translate.instant('groups.delete_error'),
+              confirmButtonText: this.translate.instant('common.ok'),
+              confirmButtonColor: '#dc2626',
+              customClass: {
+                popup: document.documentElement.classList.contains('dark')
+                  ? 'swal-dark-popup'
+                  : 'swal-light-popup',
+                title: 'swal-custom-title',
+                htmlContainer: 'swal-custom-text',
+              },
+            });
+          }
         },
       });
   }

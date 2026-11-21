@@ -10,19 +10,13 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends ApiController
 {
-
     public function login(LoginRequest $request): JsonResponse
     {
         $data = $request->validated();
 
-        $type = $data['type'];
-        $email = $data['email'];
         $user = User::query()
             ->with('roles:id,name,slug')
-            ->where('email', $email)
-            ->whereHas('roles', function ($query) use ($type) {
-                $query->where('slug', $type);
-            })
+            ->where('email', $data['email'])
             ->first();
 
         if (!$user || !Hash::check($data['password'], $user->password)) {
@@ -57,7 +51,6 @@ class AuthController extends ApiController
             ]
         );
     }
-
 
     public function logout(Request $request): JsonResponse
     {

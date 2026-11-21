@@ -102,6 +102,80 @@ class AttendanceController extends ApiController
         );
     }
 
+
+
+    public function groupOverview(Group $group): JsonResponse
+    {
+        $activeStudentIds = $group->enrollments()
+            ->where('status', 'active')
+            ->pluck('student_id');
+
+        $totalStudents = $activeStudentIds->count();
+
+        $sessions = $group->sessions()
+            ->with('attendances')
+            ->orderBy('starts_at')
+            ->get();
+
+        $data = $sessions->map(function (ClassSession $session) use ($activeStudentIds, $totalStudents) {
+            $present = 0;
+            $absent = 0;
+            $pending = 0;
+
+            $attendancesByStudent = $session->attendances
+                ->whereIn('student_id', $activeStudentIds)
+                ->groupBy('student_id');
+
+            foreach ($activeStudentIds as $studentId) {
+                $studentAttendances = $attendancesByStudent
+                    ->get($studentId, collect())
+                    ->whereIn('check_number', [1, 2, 3]);
+
+                if ($studentAttendances->contains('is_present', true)) {
+                    $present++;
+                    continue;
+                }
+
+                $recordedChecks = $studentAttendances
+                    ->pluck('check_number')
+                    ->unique()
+                    ->count();
+
+                if ($recordedChecks === 3) {
+                    $absent++;
+                } else {
+                    $pending++;
+                }
+            }
+
+            return [
+                'session_id' => $session->id,
+                'session_title' => $session->title,
+                'starts_at' => $session->starts_at,
+                'ends_at' => $session->ends_at,
+                'session_status' => $session->status,
+                'total_students' => $totalStudents,
+                'present' => $present,
+                'absent' => $absent,
+                'pending' => $pending,
+                'attendance_percentage' => $totalStudents > 0
+                    ? round(($present / $totalStudents) * 100, 2)
+                    : 0,
+            ];
+        });
+
+        return $this->success(
+            'Group attendance overview retrieved successfully.',
+            [
+                'group_id' => $group->id,
+                'group_name' => $group->name,
+                'sessions' => $data,
+            ]
+        );
+    }
+
+
+
     public function myAttendance(Request $request): JsonResponse
     {
         $student = $request->user();

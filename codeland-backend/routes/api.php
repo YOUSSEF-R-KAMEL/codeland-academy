@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\V1\Admin\AdminReportsController;
 use App\Http\Controllers\Api\V1\AdminFinancialSummaryController;
 use App\Http\Controllers\Api\V1\AdminInvoiceController;
 use App\Http\Controllers\Api\V1\AssignmentController;
@@ -25,6 +24,14 @@ use App\Http\Controllers\Api\V1\StudentProjectController;
 use App\Http\Controllers\Api\V1\StudentProjectReviewController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\AdminCourseEvaluationController;
+use App\Http\Controllers\Api\V1\admin\AdminReportsController;
+use App\Http\Controllers\Api\V1\AdminPaymentController;
+use App\Http\Controllers\Api\V1\AdminPlatformFeedbackController;
+use App\Http\Controllers\Api\V1\AdminStudentFeedbackController;
+use App\Http\Controllers\Api\V1\StudentCourseEvaluationController;
+use App\Http\Controllers\Api\V1\StudentFeedbackController;
+use App\Http\Controllers\Api\V1\StudentPlatformFeedbackController;
 
 Route::prefix('v1')->group(function () {
 
@@ -536,7 +543,6 @@ Route::prefix('v1')->group(function () {
         ])->prefix('admin/groups/{group}/sessions/{classSession}/attendance')
             ->name('api.v1.admin.groups.sessions.attendance.')
             ->group(function () {
-
                 Route::get('/', [AttendanceController::class, 'index'])
                     ->name('index');
 
@@ -616,6 +622,7 @@ Route::prefix('v1')->group(function () {
                     ->name('destroy');
             });
 
+
         /*
         |--------------------------------------------------------------------------
         | Admin Payments
@@ -627,26 +634,19 @@ Route::prefix('v1')->group(function () {
             'permission:manage_payments',
         ])->prefix('admin/payments')
             ->name('api.v1.admin.payments.')
+            ->controller(AdminPaymentController::class)
             ->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('/invoices', 'invoices')->name('invoices');
+                Route::post('/', 'store')->name('store');
+                Route::get('/', [AdminPaymentController::class, 'index']);
+                Route::get('/invoices', [AdminPaymentController::class, 'invoices']);
+                Route::post('/', [AdminPaymentController::class, 'store']);
 
-                Route::get('/', [PaymentController::class, 'index'])
-                    ->name('index');
-
-                Route::post('/', [PaymentController::class, 'store'])
-                    ->name('store');
-
-                Route::get('/{payment}', [PaymentController::class, 'show'])
-                    ->name('show');
-
-                Route::patch('/{payment}/confirm', [PaymentController::class, 'confirm'])
-                    ->name('confirm');
-
-                Route::patch('/{payment}/reject', [PaymentController::class, 'reject'])
-                    ->name('reject');
-
-                Route::patch('/{payment}/refund', [PaymentController::class, 'refund'])
-                    ->name('refund');
+                Route::put('/{payment}', [AdminPaymentController::class, 'update']);
+                Route::delete('/{payment}', [AdminPaymentController::class, 'destroy']);
             });
+
 
 
         /*
@@ -687,6 +687,153 @@ Route::prefix('v1')->group(function () {
                     AdminReportsController::class,
                     'outstandingReport',
                 ])->name('outstanding');
+            });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Attendance Overview
+        |--------------------------------------------------------------------------
+        */
+
+        Route::middleware([
+            'role:admin',
+            'permission:manage_attendance',
+        ])->prefix('admin')->group(function () {
+            Route::get(
+                '/attendance/sessions',
+                [ClassSessionController::class, 'attendanceSessions']
+            )->name('attendance.sessions');
+            Route::get(
+                '/groups/{group}/attendance-overview',
+                [AttendanceController::class, 'groupOverview']
+            )->name('groups.attendance-overview');
+        });
+
+        /*
+|--------------------------------------------------------------------------
+| Student Evaluations & Platform Feedback
+|--------------------------------------------------------------------------
+*/
+
+        Route::prefix('student')
+            ->middleware('role:student')
+            ->group(function () {
+
+                Route::post(
+                    '/course-evaluations',
+                    [StudentCourseEvaluationController::class, 'store']
+                )
+                    ->middleware('permission:submit_course_evaluations')
+                    ->name('api.v1.student.course-evaluations.store');
+
+                Route::get(
+                    '/platform-feedback',
+                    [StudentPlatformFeedbackController::class, 'index']
+                )
+                    ->middleware('permission:submit_platform_feedback')
+                    ->name('api.v1.student.platform-feedback.index');
+
+                Route::post(
+                    '/platform-feedback',
+                    [StudentPlatformFeedbackController::class, 'store']
+                )
+                    ->middleware('permission:submit_platform_feedback')
+                    ->name('api.v1.student.platform-feedback.store');
+            });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Evaluations
+        |--------------------------------------------------------------------------
+        */
+
+        Route::prefix('admin')
+            ->middleware([
+                'role:admin',
+                'permission:manage_evaluations',
+            ])
+            ->group(function () {
+
+                Route::get(
+                    '/evaluations',
+                    [AdminCourseEvaluationController::class, 'index']
+                )->name('api.v1.admin.evaluations.index');
+
+                Route::get(
+                    '/evaluations/instructor-feedback',
+                    [AdminCourseEvaluationController::class, 'instructorFeedback']
+                )->name('api.v1.admin.evaluations.instructor-feedback');
+
+                Route::get(
+                    '/evaluations/statistics',
+                    [AdminCourseEvaluationController::class, 'statistics']
+                )->name('api.v1.admin.evaluations.statistics');
+
+                Route::get(
+                    '/platform-feedback',
+                    [AdminPlatformFeedbackController::class, 'index']
+                )->name('api.v1.admin.platform-feedback.index');
+
+                Route::patch(
+                    '/platform-feedback/{platformFeedback}',
+                    [AdminPlatformFeedbackController::class, 'update']
+                )->name('api.v1.admin.platform-feedback.update');
+            });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Student Feedback
+        |--------------------------------------------------------------------------
+        */
+
+        Route::prefix('student/feedback')
+            ->name('api.v1.student.feedback.')
+            ->middleware([
+                'role:student',
+                'permission:submit_student_feedback',
+            ])
+            ->controller(StudentFeedbackController::class)
+            ->group(function () {
+
+                Route::get('/', 'index')
+                    ->name('index');
+
+                Route::post('/', 'store')
+                    ->name('store');
+
+                Route::get('/{id}', 'show')
+                    ->whereNumber('id')
+                    ->name('show');
+            });
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Student Feedback
+        |--------------------------------------------------------------------------
+        */
+
+        Route::prefix('admin/student-feedback')
+            ->name('api.v1.admin.student-feedback.')
+            ->middleware([
+                'role:admin',
+                'permission:manage_student_feedback',
+            ])
+            ->controller(AdminStudentFeedbackController::class)
+            ->group(function () {
+
+                Route::get('/', 'index')
+                    ->name('index');
+
+                Route::get('/{id}', 'show')
+                    ->whereNumber('id')
+                    ->name('show');
+
+                Route::put('/{id}/reply', 'reply')
+                    ->whereNumber('id')
+                    ->name('reply');
+
+                Route::patch('/{id}/status', 'updateStatus')
+                    ->whereNumber('id')
+                    ->name('update-status');
             });
     });
 });

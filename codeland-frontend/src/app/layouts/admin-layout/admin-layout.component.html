@@ -33,18 +33,12 @@
           />
         </div>
       </div>
-
-      <p
-        class="mt-3 text-center text-xs font-medium tracking-wide text-white/55"
-      >
-        Academy Management System
-      </p>
     </div>
 
     <!-- Navigation -->
-    <nav class="flex-1 space-y-2 overflow-y-auto px-4 py-6">
+    <nav class="flex-1 space-y-1 overflow-y-auto px-4 py-6">
       <p class="mb-4 px-3 text-xs font-bold tracking-wider text-white/45">
-        {{ "nav.main_menu" | translate }}
+        {{ "admin.nav.main_menu" | translate }}
       </p>
 
       <!-- Dashboard -->
@@ -56,7 +50,7 @@
         class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
       >
         <span class="text-lg">▦</span>
-        <span>{{ "nav.dashboard" | translate }}</span>
+        <span>{{ "admin.nav.dashboard" | translate }}</span>
       </a>
 
       <!-- Students -->
@@ -67,7 +61,7 @@
         class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
       >
         <span class="text-lg">♙</span>
-        <span>{{ "nav.students" | translate }}</span>
+        <span>{{ "admin.nav.students" | translate }}</span>
       </a>
 
       <!-- Instructors -->
@@ -77,7 +71,7 @@
         class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
       >
         <span class="text-lg">♧</span>
-        <span>{{ "nav.instructors" | translate }}</span>
+        <span>{{ "admin.nav.instructors" | translate }}</span>
       </a>
 
       <!-- Courses -->
@@ -87,7 +81,7 @@
         class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
       >
         <span class="text-lg">▤</span>
-        <span>{{ "nav.courses" | translate }}</span>
+        <span>{{ "admin.nav.courses" | translate }}</span>
       </a>
 
       <!-- Groups -->
@@ -97,7 +91,7 @@
         class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
       >
         <span class="text-lg">▦</span>
-        <span>{{ "nav.groups" | translate }}</span>
+        <span>{{ "admin.nav.groups" | translate }}</span>
       </a>
 
       <!-- Attendance -->
@@ -107,12 +101,12 @@
         class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
       >
         <span class="text-lg">✓</span>
-        <span>{{ "nav.attendance" | translate }}</span>
+        <span>{{ "admin.nav.attendance" | translate }}</span>
       </a>
 
       <!-- Academic Section -->
       <p class="mb-4 mt-8 px-3 text-xs font-bold tracking-wider text-white/45">
-        {{ "nav.academic" | translate }}
+        {{ "admin.nav.academic" | translate }}
       </p>
 
       <!-- Assignments -->
@@ -122,7 +116,7 @@
         class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
       >
         <span class="text-lg">▣</span>
-        <span>{{ "nav.assignments" | translate }}</span>
+        <span>{{ "admin.nav.assignments" | translate }}</span>
       </a>
 
       <!-- Evaluations -->
@@ -132,12 +126,12 @@
         class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
       >
         <span class="text-lg">◈</span>
-        <span>{{ "nav.evaluations" | translate }}</span>
+        <span>{{ "admin.nav.evaluations" | translate }}</span>
       </a>
 
       <!-- Management Section -->
       <p class="mb-4 mt-8 px-3 text-xs font-bold tracking-wider text-white/45">
-        {{ "nav.management" | translate }}
+        {{ "admin.nav.management" | translate }}
       </p>
 
       <!-- Payments -->
@@ -147,7 +141,7 @@
         class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
       >
         <span class="text-lg">◉</span>
-        <span>{{ "nav.payments" | translate }}</span>
+        <span>{{ "admin.nav.payments" | translate }}</span>
       </a>
 
       <!-- Settings -->
@@ -157,7 +151,7 @@
         class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
       >
         <span class="text-lg">⚙</span>
-        <span>{{ "nav.settings" | translate }}</span>
+        <span>{{ "admin.nav.settings" | translate }}</span>
       </a>
 
       <!-- Logout -->
@@ -169,7 +163,7 @@
           class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-red-200 transition-all duration-200 hover:bg-red-500/15 hover:text-white disabled:opacity-50"
         >
           <span class="text-lg">↪</span>
-          <span>{{ "nav.logout" | translate }}</span>
+          <span>{{ "admin.nav.logout" | translate }}</span>
         </button>
       </div>
     </nav>
@@ -187,7 +181,7 @@
       class="hidden w-72 shrink-0 flex-col bg-[var(--color-primary)] text-white lg:flex"
     >
       <!-- Brand -->
-      <div class="border-b border-white/10 px-5 py-6">
+      <div class="border-b border-white/10 px-5">
         <div class="rounded-2xl px-3 py-2">
           <img
             src="/logo2.png"
@@ -195,133 +189,137 @@
             class="mx-auto h-auto w-full max-w-[120px] object-contain"
           />
         </div>
-
-        <p
-          class="mt-4 text-center text-xs font-medium tracking-wide text-white/60"
-        >
-          Academy Management System
-        </p>
       </div>
 
       <!-- Navigation -->
-      <nav class="flex-1 space-y-2 overflow-y-auto px-4 py-6">
+      <nav class="flex-1 space-y-1 overflow-y-auto px-4 py-6">
         <p class="mb-4 px-3 text-xs font-bold tracking-wider text-white/45">
-          {{ "nav.main_menu" | translate }}
+          {{ "admin.nav.main_menu" | translate }}
         </p>
 
         <!-- Dashboard -->
         <a
           routerLink="/admin/dashboard"
-          routerLinkActive="bg-[#259b2b] text-white shadow-md"
+          routerLinkActive="nav-active"
           [routerLinkActiveOptions]="{ exact: true }"
-          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
+          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white [&.nav-active]:!bg-[#259b2b] [&.nav-active]:!text-white [&.nav-active]:shadow-md [&.nav-active:hover]:!bg-[#259b2b]"
         >
           <span class="text-lg">▦</span>
-          <span>{{ "nav.dashboard" | translate }}</span>
+          <span>{{ "admin.nav.dashboard" | translate }}</span>
         </a>
 
         <!-- Students -->
         <a
           routerLink="/admin/students"
-          routerLinkActive="bg-[#259b2b] text-white shadow-md"
-          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
+          routerLinkActive="nav-active"
+          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white [&.nav-active]:!bg-[#259b2b] [&.nav-active]:!text-white [&.nav-active]:shadow-md [&.nav-active:hover]:!bg-[#259b2b]"
         >
           <span class="text-lg">♙</span>
-          <span>{{ "nav.students" | translate }}</span>
+          <span>{{ "admin.nav.students" | translate }}</span>
         </a>
 
         <!-- Instructors -->
         <a
           routerLink="/admin/instructors"
-          routerLinkActive="bg-[#259b2b] text-white shadow-md"
-          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
+          routerLinkActive="nav-active"
+          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white [&.nav-active]:!bg-[#259b2b] [&.nav-active]:!text-white [&.nav-active]:shadow-md [&.nav-active:hover]:!bg-[#259b2b]"
         >
           <span class="text-lg">♧</span>
-          <span>{{ "nav.instructors" | translate }}</span>
+          <span>{{ "admin.nav.instructors" | translate }}</span>
         </a>
 
         <!-- Courses -->
         <a
           routerLink="/admin/courses"
-          routerLinkActive="bg-[#259b2b] text-white shadow-md"
-          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
+          routerLinkActive="nav-active"
+          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white [&.nav-active]:!bg-[#259b2b] [&.nav-active]:!text-white [&.nav-active]:shadow-md [&.nav-active:hover]:!bg-[#259b2b]"
         >
           <span class="text-lg">▤</span>
-          <span>{{ "nav.courses" | translate }}</span>
+          <span>{{ "admin.nav.courses" | translate }}</span>
         </a>
 
         <!-- Groups -->
         <a
           routerLink="/admin/groups"
-          routerLinkActive="bg-[#259b2b] text-white shadow-md"
-          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
+          routerLinkActive="nav-active"
+          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white [&.nav-active]:!bg-[#259b2b] [&.nav-active]:!text-white [&.nav-active]:shadow-md [&.nav-active:hover]:!bg-[#259b2b]"
         >
           <span class="text-lg">▦</span>
-          <span>{{ "nav.groups" | translate }}</span>
+          <span>{{ "admin.nav.groups" | translate }}</span>
         </a>
 
         <!-- Attendance -->
         <a
           routerLink="/admin/attendance"
-          routerLinkActive="bg-[#259b2b] text-white shadow-md"
-          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
+          routerLinkActive="nav-active"
+          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white [&.nav-active]:!bg-[#259b2b] [&.nav-active]:!text-white [&.nav-active]:shadow-md [&.nav-active:hover]:!bg-[#259b2b]"
         >
           <span class="text-lg">✓</span>
-          <span>{{ "nav.attendance" | translate }}</span>
+          <span>{{ "admin.nav.attendance" | translate }}</span>
         </a>
 
         <!-- Academic Section -->
         <p
           class="mb-4 mt-8 px-3 text-xs font-bold tracking-wider text-white/45"
         >
-          {{ "nav.academic" | translate }}
+          {{ "admin.nav.academic" | translate }}
         </p>
 
         <!-- Assignments -->
         <a
           routerLink="/admin/assignments"
-          routerLinkActive="bg-[#259b2b] text-white shadow-md"
-          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
+          routerLinkActive="nav-active"
+          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white [&.nav-active]:!bg-[#259b2b] [&.nav-active]:!text-white [&.nav-active]:shadow-md [&.nav-active:hover]:!bg-[#259b2b]"
         >
           <span class="text-lg">▣</span>
-          <span>{{ "nav.assignments" | translate }}</span>
+          <span>{{ "admin.nav.assignments" | translate }}</span>
         </a>
 
         <!-- Evaluations -->
         <a
           routerLink="/admin/evaluations"
-          routerLinkActive="bg-[#259b2b] text-white shadow-md"
-          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
+          routerLinkActive="nav-active"
+          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white [&.nav-active]:!bg-[#259b2b] [&.nav-active]:!text-white [&.nav-active]:shadow-md [&.nav-active:hover]:!bg-[#259b2b]"
         >
           <span class="text-lg">◈</span>
-          <span>{{ "nav.evaluations" | translate }}</span>
+          <span>{{ "admin.nav.evaluations" | translate }}</span>
+        </a>
+
+        <!-- Student Feedback -->
+        <a
+          routerLink="/admin/student-feedback"
+          routerLinkActive="nav-active"
+          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white [&.nav-active]:!bg-[#259b2b] [&.nav-active]:!text-white [&.nav-active]:shadow-md [&.nav-active:hover]:!bg-[#259b2b]"
+        >
+          <span class="text-lg">✉</span>
+          <span>{{ "admin.student_feedback.title" | translate }}</span>
         </a>
 
         <!-- Management Section -->
         <p
           class="mb-4 mt-8 px-3 text-xs font-bold tracking-wider text-white/45"
         >
-          {{ "nav.management" | translate }}
+          {{ "admin.nav.management" | translate }}
         </p>
 
         <!-- Payments -->
         <a
           routerLink="/admin/payments"
-          routerLinkActive="bg-[#259b2b] text-white shadow-md"
-          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
+          routerLinkActive="nav-active"
+          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white [&.nav-active]:!bg-[#259b2b] [&.nav-active]:!text-white [&.nav-active]:shadow-md [&.nav-active:hover]:!bg-[#259b2b]"
         >
           <span class="text-lg">◉</span>
-          <span>{{ "nav.payments" | translate }}</span>
+          <span>{{ "admin.nav.payments" | translate }}</span>
         </a>
 
         <!-- Settings -->
         <a
           routerLink="/admin/settings"
-          routerLinkActive="bg-[#259b2b] text-white shadow-md"
-          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white"
+          routerLinkActive="nav-active"
+          class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white/75 transition-all duration-200 hover:bg-white/10 hover:text-white [&.nav-active]:!bg-[#259b2b] [&.nav-active]:!text-white [&.nav-active]:shadow-md [&.nav-active:hover]:!bg-[#259b2b]"
         >
           <span class="text-lg">⚙</span>
-          <span>{{ "nav.settings" | translate }}</span>
+          <span>{{ "admin.nav.settings" | translate }}</span>
         </a>
 
         <!-- Logout -->
@@ -333,7 +331,7 @@
             class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-red-200 transition-all duration-200 hover:bg-red-500/15 hover:text-white disabled:opacity-50"
           >
             <span class="text-lg">↪</span>
-            <span>{{ "nav.logout" | translate }}</span>
+            <span>{{ "admin.nav.logout" | translate }}</span>
           </button>
         </div>
       </nav>

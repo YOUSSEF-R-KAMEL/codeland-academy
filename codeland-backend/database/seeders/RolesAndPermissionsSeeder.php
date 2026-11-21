@@ -31,6 +31,15 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view_progress' => 'View Progress',
                 'ask_questions' => 'Ask Questions',
                 'view_payments' => 'View Payments',
+
+                // Evaluations & Platform Feedback
+                'submit_course_evaluations' => 'Submit Course Evaluations',
+                'submit_platform_feedback' => 'Submit Platform Feedback',
+                'manage_evaluations' => 'Manage Evaluations',
+
+                // Student Feedback
+                'submit_student_feedback' => 'Submit Student Feedback',
+                'manage_student_feedback' => 'Manage Student Feedback',
             ];
 
             $permissionModels = [];
@@ -48,7 +57,10 @@ class RolesAndPermissionsSeeder extends Seeder
             $roles = [
                 'admin' => [
                     'name' => 'Administrator',
-                    'permissions' => array_keys($permissions),
+                    'permissions' => array_values(array_diff(
+                        array_keys($permissions),
+                        ['submit_student_feedback']
+                    )),
                 ],
 
                 'instructor' => [
@@ -74,6 +86,13 @@ class RolesAndPermissionsSeeder extends Seeder
                         'view_progress',
                         'ask_questions',
                         'view_payments',
+
+                        // Evaluations & Platform Feedback
+                        'submit_course_evaluations',
+                        'submit_platform_feedback',
+
+                        // Student Feedback
+                        'submit_student_feedback',
                     ],
                 ],
             ];

@@ -5,19 +5,19 @@
   >
     <div>
       <h1 class="text-2xl font-bold">
-        {{ "instructors.title" | translate }}
+        {{ "admin.instructors.title" | translate }}
       </h1>
       <p class="mt-2 text-sm text-[var(--color-muted)]">
-        {{ "instructors.description" | translate }}
+        {{ "admin.instructors.description" | translate }}
       </p>
     </div>
 
     <button
       type="button"
       (click)="openAddModal()"
-      class="rounded-xl bg-[#259b2b] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#208525]"
+      class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-300 ease-out hover:bg-blue-700 hover:shadow-lg active:translate-y-0 active:scale-95"
     >
-      + {{ "instructors.add" | translate }}
+      + {{ "admin.instructors.add" | translate }}
     </button>
   </section>
 
@@ -27,7 +27,7 @@
       class="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-sm"
     >
       <p class="text-sm text-[var(--color-muted)]">
-        {{ "instructors.total" | translate }}
+        {{ "admin.instructors.total" | translate }}
       </p>
       <p class="mt-4 text-3xl font-bold">{{ totalInstructors() }}</p>
     </div>
@@ -36,7 +36,7 @@
       class="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-sm"
     >
       <p class="text-sm text-[var(--color-muted)]">
-        {{ "instructors.active" | translate }}
+        {{ "admin.instructors.active" | translate }}
       </p>
       <p class="mt-4 text-3xl font-bold text-[#259b2b]">
         {{ activeInstructors() }}
@@ -47,7 +47,7 @@
       class="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-sm"
     >
       <p class="text-sm text-[var(--color-muted)]">
-        {{ "instructors.inactive" | translate }}
+        {{ "admin.instructors.inactive" | translate }}
       </p>
       <p class="mt-4 text-3xl font-bold text-amber-500">
         {{ inactiveInstructors() }}
@@ -59,32 +59,59 @@
   <section
     class="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-sm"
   >
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <!-- Search -->
       <div>
         <label class="mb-2 block text-sm font-semibold">
           {{ "common.search" | translate }}
         </label>
         <input
           type="search"
+          [value]="searchTerm()"
           (input)="onSearchChange($any($event.target).value)"
-          [placeholder]="'instructors.search_placeholder' | translate"
-          class="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm outline-none transition focus:border-[#259b2b]"
+          [placeholder]="'admin.instructors.search_placeholder' | translate"
+          class="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm outline-none transition focus:border-blue-500"
         />
       </div>
 
+      <!-- Status Filter -->
       <div>
         <label class="mb-2 block text-sm font-semibold">
-          {{ "instructors.status" | translate }}
+          {{ "admin.instructors.status" | translate }}
         </label>
 
         <app-select
           [options]="statusOptions"
           [formControl]="statusControl"
-          [placeholder]="'instructors.all_statuses' | translate"
+          [placeholder]="'admin.instructors.all_statuses' | translate"
           [translateLabels]="true"
           inputId="instructor-status"
         />
       </div>
+
+      <!-- Sorting -->
+      <div>
+        <label class="mb-2 block text-sm font-semibold">
+          {{ "admin.instructors.sort_by" | translate }}
+        </label>
+
+        <app-select
+          [options]="sortOptions"
+          [formControl]="sortControl"
+          [placeholder]="'admin.instructors.sort_by' | translate"
+          [translateLabels]="true"
+        />
+      </div>
+    </div>
+
+    <div class="mt-4 flex justify-end">
+      <button
+        type="button"
+        (click)="resetFilters()"
+        class="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-semibold transition hover:bg-[var(--color-background)]"
+      >
+        {{ "admin.instructors.reset_filters" | translate }}
+      </button>
     </div>
   </section>
 
@@ -96,9 +123,9 @@
       class="flex items-center justify-between border-b border-[var(--color-border)] p-5"
     >
       <div>
-        <h2 class="font-bold">{{ "instructors.list" | translate }}</h2>
+        <h2 class="font-bold">{{ "admin.instructors.list" | translate }}</h2>
         <p class="mt-1 text-xs text-[var(--color-muted)]">
-          {{ "instructors.list_description" | translate }}
+          {{ "admin.instructors.list_description" | translate }}
         </p>
       </div>
     </div>
@@ -108,16 +135,16 @@
         <thead class="bg-[var(--color-background)] text-[var(--color-muted)]">
           <tr>
             <th class="px-5 py-4 font-semibold">
-              {{ "instructors.instructor" | translate }}
+              {{ "admin.instructors.instructor" | translate }}
             </th>
             <th class="px-5 py-4 font-semibold">
-              {{ "instructors.email" | translate }}
+              {{ "admin.instructors.email" | translate }}
             </th>
             <th class="px-5 py-4 font-semibold">
-              {{ "instructors.status" | translate }}
+              {{ "admin.instructors.status" | translate }}
             </th>
             <th class="px-5 py-4 font-semibold">
-              {{ "instructors.actions" | translate }}
+              {{ "admin.instructors.actions" | translate }}
             </th>
           </tr>
         </thead>
@@ -132,7 +159,7 @@
                 {{ "common.loading" | translate }}
               </td>
             </tr>
-          } @else if (instructors().length === 0) {
+          } @else if (paginatedInstructors().length === 0) {
             <tr>
               <td colspan="4" class="px-5 py-16 text-center">
                 <div class="mx-auto max-w-sm">
@@ -142,16 +169,16 @@
                     ♙
                   </div>
                   <p class="font-semibold">
-                    {{ "instructors.empty" | translate }}
+                    {{ "admin.instructors.empty" | translate }}
                   </p>
                   <p class="mt-2 text-xs text-[var(--color-muted)]">
-                    {{ "instructors.empty_description" | translate }}
+                    {{ "admin.instructors.empty_description" | translate }}
                   </p>
                 </div>
               </td>
             </tr>
           } @else {
-            @for (instructor of instructors(); track instructor.id) {
+            @for (instructor of paginatedInstructors(); track instructor.id) {
               <tr
                 class="border-t border-[var(--color-border)] transition hover:bg-[var(--color-background)]"
               >
@@ -169,15 +196,15 @@
                 <td class="px-5 py-4">
                   @if (instructor.is_active) {
                     <span
-                      class="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700"
+                      class="rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-300"
                     >
-                      {{ "instructors.active" | translate }}
+                      {{ "admin.instructors.active" | translate }}
                     </span>
                   } @else {
                     <span
-                      class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700"
+                      class="rounded-full bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-700 dark:bg-red-900/30 dark:text-red-300"
                     >
-                      {{ "instructors.inactive" | translate }}
+                      {{ "admin.instructors.inactive" | translate }}
                     </span>
                   }
                 </td>
@@ -187,16 +214,16 @@
                     <button
                       type="button"
                       (click)="openEditModal(instructor)"
-                      class="rounded-lg border border-[var(--color-border)] px-3 py-2 text-xs font-semibold transition hover:bg-[var(--color-background)]"
+                      class="rounded-lg bg-blue-100 px-3 py-2 text-sm font-semibold text-blue-700 transition-all duration-300 hover:!text-white hover:bg-blue-600 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:!bg-blue-700"
                     >
-                      {{ "instructors.edit" | translate }}
+                      {{ "admin.instructors.edit" | translate }}
                     </button>
 
                     <button
                       type="button"
                       [disabled]="processingInstructorId() !== null"
                       (click)="toggleInstructorStatus(instructor)"
-                      class="rounded-lg px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
+                      class="rounded-lg bg-red-100 px-3 py-2 text-sm font-semibold text-red-700 transition-all duration-300 hover:!bg-red-600 hover:!text-white hover:shadow-md active:scale-95 dark:bg-red-900/30 dark:text-red-300"
                       [class.bg-amber-100]="instructor.is_active"
                       [class.text-amber-700]="instructor.is_active"
                       [class.bg-green-100]="!instructor.is_active"
@@ -207,8 +234,8 @@
                       } @else {
                         {{
                           (instructor.is_active
-                            ? "instructors.deactivate"
-                            : "instructors.activate"
+                            ? "admin.instructors.deactivate"
+                            : "admin.instructors.activate"
                           ) | translate
                         }}
                       }
@@ -223,7 +250,7 @@
     </div>
 
     <!-- Pagination -->
-    @if (pagination().last_page > 1) {
+    @if (lastPage() > 1) {
       <div
         class="flex flex-col items-center justify-between gap-3 border-t border-[var(--color-border)] p-5 sm:flex-row"
       >
@@ -231,7 +258,7 @@
           {{ "common.page" | translate }}
           {{ currentPage() }}
           /
-          {{ pagination().last_page }}
+          {{ lastPage() }}
         </p>
 
         <div class="flex gap-2">
@@ -246,7 +273,7 @@
 
           <button
             type="button"
-            [disabled]="currentPage() === pagination().last_page || loading()"
+            [disabled]="currentPage() === lastPage() || loading()"
             (click)="goToPage(currentPage() + 1)"
             class="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm disabled:opacity-40"
           >
@@ -272,12 +299,14 @@
         <div>
           <h2 class="text-xl font-bold">
             {{
-              (selectedInstructorId() ? "instructors.edit" : "instructors.add")
-                | translate
+              (selectedInstructorId()
+                ? "admin.instructors.edit"
+                : "admin.instructors.add"
+              ) | translate
             }}
           </h2>
           <p class="mt-1 text-sm text-[var(--color-muted)]">
-            {{ "instructors.form_description" | translate }}
+            {{ "admin.instructors.form_description" | translate }}
           </p>
         </div>
 
@@ -298,64 +327,64 @@
       >
         <div>
           <label class="mb-2 block text-sm font-semibold">
-            {{ "instructors.name" | translate }}
+            {{ "admin.instructors.name" | translate }}
           </label>
           <input
             type="text"
             formControlName="name"
-            class="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm outline-none focus:border-[#259b2b]"
+            class="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm outline-none focus:border-blue-500"
           />
           @if (
             instructorForm.controls.name.touched &&
             instructorForm.controls.name.invalid
           ) {
             <p class="mt-1 text-xs text-red-600">
-              {{ "instructors.name_required" | translate }}
+              {{ "admin.instructors.name_required" | translate }}
             </p>
           }
         </div>
 
         <div>
           <label class="mb-2 block text-sm font-semibold">
-            {{ "instructors.email" | translate }}
+            {{ "admin.instructors.email" | translate }}
           </label>
           <input
             type="email"
             formControlName="email"
-            class="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm outline-none focus:border-[#259b2b]"
+            class="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm outline-none focus:border-blue-500"
           />
           @if (
             instructorForm.controls.email.touched &&
             instructorForm.controls.email.invalid
           ) {
             <p class="mt-1 text-xs text-red-600">
-              {{ "instructors.email_invalid" | translate }}
+              {{ "admin.instructors.email_invalid" | translate }}
             </p>
           }
         </div>
 
         <div>
           <label class="mb-2 block text-sm font-semibold">
-            {{ "instructors.password" | translate }}
+            {{ "admin.instructors.password" | translate }}
           </label>
           <input
             type="password"
             formControlName="password"
             [placeholder]="
               (selectedInstructorId()
-                ? 'instructors.password_optional'
-                : 'instructors.password'
+                ? 'admin.instructors.password_optional'
+                : 'admin.instructors.password'
               ) | translate
             "
             autocomplete="new-password"
-            class="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm outline-none focus:border-[#259b2b]"
+            class="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm outline-none focus:border-blue-500"
           />
           @if (
             instructorForm.controls.password.touched &&
             instructorForm.controls.password.invalid
           ) {
             <p class="mt-1 text-xs text-red-600">
-              {{ "instructors.password_min" | translate }}
+              {{ "admin.instructors.password_min" | translate }}
             </p>
           }
         </div>
@@ -363,16 +392,17 @@
         @if (!selectedInstructorId()) {
           <div>
             <label class="mb-2 block text-sm font-semibold">
-              {{ "instructors.password_confirmation" | translate }}
+              {{ "admin.instructors.password_confirmation" | translate }}
             </label>
             <input
               type="password"
               formControlName="password_confirmation"
               autocomplete="new-password"
-              class="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm outline-none focus:border-[#259b2b]"
+              class="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3 text-sm outline-none focus:border-blue-500"
             />
           </div>
         }
+
         <div class="flex justify-end gap-3 pt-3">
           <button
             type="button"

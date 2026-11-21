@@ -1,0 +1,429 @@
+<div class="modal-enter space-y-6">
+  <!-- Header -->
+  <div
+    class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+  >
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+        {{ "admin.attendance.title" | translate }}
+      </h1>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        {{ "admin.attendance.subtitle" | translate }}
+      </p>
+    </div>
+
+    <button
+      type="button"
+      (click)="loadSessions()"
+      class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+    >
+      {{ "admin.attendance.refresh" | translate }}
+    </button>
+  </div>
+
+  <!-- Statistics -->
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+    >
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        {{ "admin.attendance.total_sessions" | translate }}
+      </p>
+      <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+        {{ totalSessions() }}
+      </p>
+    </div>
+
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+    >
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        {{ "admin.attendance.completed" | translate }}
+      </p>
+      <p class="mt-2 text-3xl font-bold text-green-600">
+        {{ completedSessions() }}
+      </p>
+    </div>
+
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+    >
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        {{ "admin.attendance.pending" | translate }}
+      </p>
+      <p class="mt-2 text-3xl font-bold text-orange-500">
+        {{ pendingSessions() }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="flex flex-col gap-3 sm:flex-row">
+    <input
+      type="text"
+      [placeholder]="'admin.attendance.search' | translate"
+      [ngModel]="searchTerm()"
+      (ngModelChange)="searchTerm.set($event)"
+      class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+    />
+
+    <app-select
+      [options]="[
+        { value: 'all', label: 'admin.attendance.all' },
+        { value: 'completed', label: 'admin.attendance.completed' },
+        { value: 'partial', label: 'admin.attendance.partial' },
+        { value: 'pending', label: 'admin.attendance.pending' },
+      ]"
+      [ngModel]="statusFilter()"
+      (ngModelChange)="statusFilter.set($event)"
+      [translateLabels]="true"
+    />
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div
+      class="rounded-xl border border-gray-200 bg-white p-10 text-center dark:border-gray-700 dark:bg-gray-800"
+    >
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        {{ "admin.attendance.loading" | translate }}
+      </p>
+    </div>
+  }
+
+  <!-- Error -->
+  @if (!loading() && error()) {
+    <div
+      class="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300"
+    >
+      {{ error() | translate }}
+      <button
+        type="button"
+        (click)="loadSessions()"
+        class="ms-2 font-semibold underline"
+      >
+        {{ "admin.attendance.try_again" | translate }}
+      </button>
+    </div>
+  }
+
+  <!-- Sessions -->
+  @if (!loading() && !error()) {
+    <div
+      class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
+    >
+      <div class="overflow-x-auto">
+        <table class="w-full text-start text-sm">
+          <thead
+            class="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-900 dark:text-gray-400"
+          >
+            <tr>
+              <th class="px-5 py-4">
+                {{ "admin.attendance.session" | translate }}
+              </th>
+              <th class="px-5 py-4">
+                {{ "admin.attendance.group_course" | translate }}
+              </th>
+              <th class="px-5 py-4">
+                {{ "admin.attendance.instructor" | translate }}
+              </th>
+              <th class="px-5 py-4">
+                {{ "admin.attendance.date" | translate }}
+              </th>
+              <th class="px-5 py-4">
+                {{ "admin.attendance.attendance" | translate }}
+              </th>
+              <th class="px-5 py-4">
+                {{ "admin.attendance.status" | translate }}
+              </th>
+              <th class="px-5 py-4 text-end">
+                {{ "admin.attendance.action" | translate }}
+              </th>
+            </tr>
+          </thead>
+
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+            @for (session of filteredSessions(); track session.id) {
+              <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                <td class="px-5 py-4">
+                  <p class="font-semibold text-gray-900 dark:text-white">
+                    {{ session.title }}
+                  </p>
+                  <p class="mt-1 text-xs text-gray-500">
+                    {{ session.status }}
+                  </p>
+                </td>
+
+                <td class="px-5 py-4">
+                  <p class="font-medium text-gray-900 dark:text-white">
+                    {{ session.group.name }}
+                  </p>
+                  <p class="mt-1 text-xs text-gray-500">
+                    {{ session.group.code }} · {{ session.group.course.title }}
+                  </p>
+                </td>
+
+                <td class="px-5 py-4 text-gray-700 dark:text-gray-300">
+                  {{ getInstructorName(session) }}
+                </td>
+
+                <td
+                  class="whitespace-nowrap px-5 py-4 text-gray-700 dark:text-gray-300"
+                >
+                  {{ session.starts_at | date: "dd MMM yyyy, h:mm a" }}
+                </td>
+
+                <td class="whitespace-nowrap px-5 py-4">
+                  <p class="font-semibold text-gray-900 dark:text-white">
+                    {{ session.present_count }}
+                    {{ "admin.attendance.present" | translate }}
+                  </p>
+                  <p class="mt-1 text-xs text-gray-500">
+                    {{ session.absent_count }}
+                    {{ "admin.attendance.absent" | translate }} /
+                    {{ session.active_students_count }}
+                    {{ "admin.attendance.students" | translate }}
+                  </p>
+                </td>
+
+                <td class="whitespace-nowrap px-5 py-4">
+                  @switch (getAttendanceStatus(session)) {
+                    @case ("completed") {
+                      <span
+                        class="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700"
+                      >
+                        {{ "admin.attendance.completed" | translate }}
+                      </span>
+                    }
+                    @case ("partial") {
+                      <span
+                        class="rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-700"
+                      >
+                        {{ "admin.attendance.partial" | translate }}
+                      </span>
+                    }
+                    @default {
+                      <span
+                        class="rounded-full bg-orange-100 px-3 py-1 text-xs font-medium text-orange-700"
+                      >
+                        {{ "admin.attendance.pending" | translate }}
+                      </span>
+                    }
+                  }
+                </td>
+
+                <td class="px-5 py-4 text-end">
+                  <div class="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      (click)="openGroupOverview(session)"
+                      class="whitespace-nowrap rounded-lg border border-blue-200 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-950/40"
+                    >
+                      {{ "admin.attendance.group_overview" | translate }}
+                    </button>
+
+                    <button
+                      type="button"
+                      (click)="openAttendance(session)"
+                      class="whitespace-nowrap rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                    >
+                      {{ "admin.attendance.manage" | translate }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="px-5 py-12 text-center text-gray-500">
+                  {{ "admin.attendance.no_sessions" | translate }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>
+@if (overviewLoading() || overviewError() || selectedGroupOverview()) {
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+    (click)="closeGroupOverview()"
+  >
+    <div
+      class="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-800"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white">
+            {{ "admin.attendance.group_overview" | translate }}
+          </h2>
+
+          @if (selectedGroupOverview(); as overview) {
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {{ overview.group_name }}
+            </p>
+          }
+        </div>
+
+        <button
+          type="button"
+          (click)="closeGroupOverview()"
+          class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+          [attr.aria-label]="'admin.attendance.close' | translate"
+        >
+          ✕
+        </button>
+      </div>
+
+      @if (overviewLoading()) {
+        <div class="py-12 text-center text-sm text-gray-500 dark:text-gray-400">
+          {{ "admin.attendance.loading_group_overview" | translate }}
+        </div>
+      }
+
+      @if (overviewError()) {
+        <div
+          class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300"
+        >
+          {{ overviewError() | translate }}
+          <button
+            type="button"
+            (click)="closeGroupOverview()"
+            class="ms-2 font-semibold underline"
+          >
+            {{ "admin.attendance.close" | translate }}
+          </button>
+        </div>
+      }
+
+      @if (selectedGroupOverview(); as overview) {
+        <div class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div class="rounded-xl bg-gray-50 p-4 dark:bg-gray-900">
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+              {{ "admin.attendance.total_sessions" | translate }}
+            </p>
+            <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+              {{ overview.sessions.length }}
+            </p>
+          </div>
+
+          <div class="rounded-xl bg-gray-50 p-4 dark:bg-gray-900">
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+              {{ "admin.attendance.students" | translate }}
+            </p>
+            <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+              {{ overview.sessions[0].total_students  }}
+            </p>
+          </div>
+
+          <div class="rounded-xl bg-green-50 p-4 dark:bg-green-950/30">
+            <p class="text-xs text-green-700 dark:text-green-300">
+              {{ "admin.attendance.present" | translate }}
+            </p>
+            <p
+              class="mt-2 text-2xl font-bold text-green-700 dark:text-green-300"
+            >
+              {{ totalAbsentRecords() }}
+            </p>
+          </div>
+
+          <div class="rounded-xl bg-red-50 p-4 dark:bg-red-950/30">
+            <p class="text-xs text-red-700 dark:text-red-300">
+              {{ "admin.attendance.absent" | translate }}
+            </p>
+            <p class="mt-2 text-2xl font-bold text-red-700 dark:text-red-300">
+              {{ totalPresentRecords() }}
+            </p>
+          </div>
+        </div>
+
+        <div
+          class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700"
+        >
+          <table class="w-full text-start text-sm">
+            <thead
+              class="bg-gray-50 text-xs text-gray-500 dark:bg-gray-900 dark:text-gray-400"
+            >
+              <tr>
+                <th class="whitespace-nowrap px-4 py-3">
+                  {{ "admin.attendance.session" | translate }}
+                </th>
+                <th class="whitespace-nowrap px-4 py-3">
+                  {{ "admin.attendance.date" | translate }}
+                </th>
+                <th class="whitespace-nowrap px-4 py-3">
+                  {{ "admin.attendance.present" | translate }}
+                </th>
+                <th class="whitespace-nowrap px-4 py-3">
+                  {{ "admin.attendance.absent" | translate }}
+                </th>
+                <th class="whitespace-nowrap px-4 py-3">
+                  {{ "admin.attendance.pending_students" | translate }}
+                </th>
+                <th class="whitespace-nowrap px-4 py-3">
+                  {{ "admin.attendance.percentage" | translate }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+              @for (session of overview.sessions; track session.session_id) {
+                <tr>
+                  <td
+                    class="px-4 py-4 font-medium text-gray-900 dark:text-white"
+                  >
+                    {{ session.session_title }}
+                  </td>
+
+                  <td
+                    class="whitespace-nowrap px-4 py-4 text-gray-600 dark:text-gray-300"
+                  >
+                    {{ session.starts_at | date: "dd MMM yyyy, h:mm a" }}
+                  </td>
+
+                  <td class="px-4 py-4 font-semibold text-green-600">
+                    {{ session.present }}
+                  </td>
+
+                  <td class="px-4 py-4 font-semibold text-red-600">
+                    {{ session.absent }}
+                  </td>
+
+                  <td class="px-4 py-4 font-semibold text-orange-500">
+                    {{ session.pending }}
+                  </td>
+
+                  <td class="px-4 py-4">
+                    <div class="flex items-center gap-2">
+                      <div
+                        class="h-2 w-20 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
+                      >
+                        <div
+                          class="h-full rounded-full bg-green-500"
+                          [style.width.%]="session.attendance_percentage"
+                        ></div>
+                      </div>
+                      <span
+                        class="font-semibold text-gray-700 dark:text-gray-200"
+                      >
+                        {{ session.attendance_percentage }}%
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="px-4 py-10 text-center text-gray-500">
+                    {{ "admin.attendance.no_group_sessions" | translate }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+}

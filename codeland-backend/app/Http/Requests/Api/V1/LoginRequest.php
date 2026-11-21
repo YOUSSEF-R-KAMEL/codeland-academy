@@ -15,16 +15,6 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => [
-                'required',
-                'string',
-                Rule::in([
-                    'admin',
-                    'instructor',
-                    'student',
-                ]),
-            ],
-
             'email' => [
                 'required',
                 'email',
@@ -42,9 +32,6 @@ class LoginRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'type.required' => 'نوع الحساب مطلوب.',
-            'type.in' => 'نوع الحساب غير صحيح.',
-
             'email.required' => 'البريد الإلكتروني مطلوب.',
             'email.email' => 'البريد الإلكتروني غير صحيح.',
 

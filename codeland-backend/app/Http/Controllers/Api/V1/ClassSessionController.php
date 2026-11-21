@@ -89,7 +89,6 @@ class ClassSessionController extends Controller
         });
     }
 
-
     public function update(
         UpdateClassSessionRequest $request,
         Group $group,
@@ -157,8 +156,6 @@ class ClassSessionController extends Controller
         });
     }
 
-
-
     public function destroy(
         Group $group,
         ClassSession $classSession
@@ -200,4 +197,74 @@ class ClassSessionController extends Controller
             'You are not assigned to this group.'
         );
     }
+
+
+    public function attendanceSessions(): JsonResponse
+    {
+        $sessions = ClassSession::query()
+            ->with([
+                'group.course',
+                'group.instructors' => function ($query) {
+                    $query->wherePivot('is_primary', true);
+                },
+            ])
+            ->addSelect([
+                // Count each student once if they attended any check.
+                'present_count' => DB::table('attendances as a')
+                    ->selectRaw('COUNT(DISTINCT a.student_id)')
+                    ->whereColumn('a.class_session_id', 'class_sessions.id')
+                    ->where('a.is_present', true),
+
+                // Count each student once only after all 3 checks are absent.
+                'absent_count' => DB::table('attendances as a')
+                    ->selectRaw('COUNT(DISTINCT a.student_id)')
+                    ->whereColumn('a.class_session_id', 'class_sessions.id')
+                    ->whereNotExists(function ($query) {
+                        $query->selectRaw('1')
+                            ->from('attendances as p')
+                            ->whereColumn('p.class_session_id', 'a.class_session_id')
+                            ->whereColumn('p.student_id', 'a.student_id')
+                            ->where('p.is_present', true);
+                    })
+                    ->whereExists(function ($query) {
+                        $query->selectRaw('1')
+                            ->from('attendances as c1')
+                            ->whereColumn('c1.class_session_id', 'a.class_session_id')
+                            ->whereColumn('c1.student_id', 'a.student_id')
+                            ->where('c1.check_number', 1);
+                    })
+                    ->whereExists(function ($query) {
+                        $query->selectRaw('1')
+                            ->from('attendances as c2')
+                            ->whereColumn('c2.class_session_id', 'a.class_session_id')
+                            ->whereColumn('c2.student_id', 'a.student_id')
+                            ->where('c2.check_number', 2);
+                    })
+                    ->whereExists(function ($query) {
+                        $query->selectRaw('1')
+                            ->from('attendances as c3')
+                            ->whereColumn('c3.class_session_id', 'a.class_session_id')
+                            ->whereColumn('c3.student_id', 'a.student_id')
+                            ->where('c3.check_number', 3);
+                    }),
+            ])
+            ->withCount([
+                'group as active_students_count' => function ($query) {
+                    $query->join(
+                        'enrollments',
+                        'enrollments.group_id',
+                        '=',
+                        'groups.id'
+                    )->where('enrollments.status', 'active');
+                },
+            ])
+            ->orderByDesc('starts_at')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $sessions,
+        ]);
+    }
+
 }

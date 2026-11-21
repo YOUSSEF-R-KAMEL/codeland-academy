@@ -29,7 +29,7 @@
   <section>
     <div class="mb-5">
       <h2 class="text-lg font-bold">
-        {{ "dashboard.overview" | translate }}
+        {{ "admin.dashboard.overview" | translate }}
       </h2>
 
       <p class="mt-1 text-sm text-[var(--color-muted)]">
@@ -157,7 +157,7 @@
         class="mt-4 flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between"
       >
         <p>
-          {{ "dashboard.partial_error" | translate }}
+          {{ "admin.dashboard.partial_error" | translate }}
         </p>
 
         <button
@@ -178,18 +178,18 @@
     >
       <div class="mb-5">
         <h2 class="font-bold">
-          {{ "dashboard.financial_overview" | translate }}
+          {{ "admin.dashboard.financial_overview" | translate }}
         </h2>
 
         <p class="mt-1 text-sm text-[var(--color-muted)]">
-          {{ "dashboard.invoice_summary" | translate }}
+          {{ "admin.dashboard.invoice_summary" | translate }}
         </p>
       </div>
 
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div class="rounded-xl bg-[var(--color-background)] p-4">
           <p class="text-sm text-[var(--color-muted)]">
-            {{ "dashboard.total_invoices" | translate }}
+            {{ "admin.dashboard.total_invoices" | translate }}
           </p>
 
           <p class="mt-2 text-xl font-bold">
@@ -199,7 +199,7 @@
 
         <div class="rounded-xl bg-[var(--color-background)] p-4">
           <p class="text-sm text-[var(--color-muted)]">
-            {{ "dashboard.remaining_amount" | translate }}
+            {{ "admin.dashboard.remaining_amount" | translate }}
           </p>
 
           <p class="mt-2 text-xl font-bold">
@@ -209,7 +209,7 @@
 
         <div class="rounded-xl bg-[var(--color-background)] p-4">
           <p class="text-sm text-[var(--color-muted)]">
-            {{ "dashboard.overdue_invoices" | translate }}
+            {{ "admin.dashboard.overdue_invoices" | translate }}
           </p>
 
           <p class="mt-2 text-xl font-bold">
@@ -219,7 +219,7 @@
 
         <div class="rounded-xl bg-[var(--color-background)] p-4">
           <p class="text-sm text-[var(--color-muted)]">
-            {{ "dashboard.paid_invoices" | translate }}
+            {{ "admin.dashboard.paid_invoices" | translate }}
           </p>
 
           <p class="mt-2 text-xl font-bold">
@@ -236,11 +236,11 @@
   >
     <div>
       <h2 class="font-bold">
-        {{ "dashboard.upcoming_sessions" | translate }}
+        {{ "admin.dashboard.upcoming_sessions" | translate }}
       </h2>
 
       <p class="mt-1 text-xs text-[var(--color-muted)]">
-        {{ "dashboard.sessions_description" | translate }}
+        {{ "admin.dashboard.sessions_description" | translate }}
       </p>
     </div>
 
@@ -248,7 +248,7 @@
       class="mt-6 rounded-xl border border-dashed border-[var(--color-border)] px-4 py-10 text-center"
     >
       <p class="font-semibold text-[var(--color-muted)]">
-        {{ "dashboard.sessions_not_connected" | translate }}
+        {{ "admin.dashboard.sessions_not_connected" | translate }}
       </p>
     </div>
   </section>
@@ -258,7 +258,7 @@
     class="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-sm"
   >
     <h2 class="font-bold">
-      {{ "dashboard.quick_actions" | translate }}
+      {{ "admin.dashboard.quick_actions" | translate }}
     </h2>
 
     <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -267,23 +267,8 @@
         class="flex items-center justify-between rounded-xl bg-[var(--color-background)] p-4 transition hover:bg-[var(--color-primary)] hover:text-white"
       >
         <span class="text-sm font-semibold">
-          {{ "nav.students" | translate }}
+          {{ "admin.nav.students" | translate }}
         </span>
-
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M5 12h14" />
-          <path d="m12 5 7 7-7 7" />
-        </svg>
       </a>
     </div>
   </section>

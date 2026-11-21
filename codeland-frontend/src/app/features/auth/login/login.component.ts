@@ -3,11 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
-
 import { LanguageService } from '../../../core/services/language.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { UserRole } from '../../../core/models/auth.model';
 
 @Component({
   selector: 'app-login',
@@ -30,30 +28,7 @@ export class LoginComponent {
   readonly errorMessageIsTranslation = signal(false);
   readonly showPassword = signal(false);
 
-  readonly accountTypes: {
-    value: UserRole;
-    labelKey: string;
-    placeholderKey: string;
-  }[] = [
-    {
-      value: 'admin',
-      labelKey: 'auth.account_types.admin',
-      placeholderKey: 'auth.placeholders.admin',
-    },
-    {
-      value: 'instructor',
-      labelKey: 'auth.account_types.instructor',
-      placeholderKey: 'auth.placeholders.instructor',
-    },
-    {
-      value: 'student',
-      labelKey: 'auth.account_types.student',
-      placeholderKey: 'auth.placeholders.student',
-    },
-  ];
-
   readonly loginForm = this.fb.nonNullable.group({
-    type: ['admin' as UserRole, Validators.required],
     email: ['', [Validators.required, Validators.email]],
     password: ['', Validators.required],
   });
@@ -68,12 +43,6 @@ export class LoginComponent {
 
   togglePasswordVisibility(): void {
     this.showPassword.update((value) => !value);
-  }
-
-  onAccountTypeChange(): void {
-    this.loginForm.controls.email.reset('');
-    this.errorMessage.set('');
-    this.errorMessageIsTranslation.set(false);
   }
 
   login(): void {
@@ -92,15 +61,24 @@ export class LoginComponent {
 
         this.isLoading.set(false);
 
-        if (role === 'admin') {
-          this.router.navigate(['/admin/dashboard']);
-          return;
+        switch (role) {
+          case 'admin':
+            this.router.navigate(['/admin/dashboard']);
+            break;
+
+          case 'instructor':
+            this.router.navigate(['/instructor/dashboard']);
+            break;
+
+          case 'student':
+            this.router.navigate(['/student']);
+            break;
+
+          default:
+            this.errorMessage.set('auth.errors.no_admin_access');
+            this.errorMessageIsTranslation.set(true);
+            this.authService.clearSession();
         }
-
-        this.errorMessage.set('auth.errors.no_admin_access');
-        this.errorMessageIsTranslation.set(true);
-
-        this.authService.clearSession();
       },
 
       error: (error) => {

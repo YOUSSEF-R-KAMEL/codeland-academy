@@ -1,0 +1,487 @@
+<div class="space-y-6">
+  <!-- Page Header -->
+  <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+        {{ "admin.student_feedback.title" | translate }}
+      </h1>
+
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        {{ "admin.student_feedback.subtitle" | translate }}
+      </p>
+    </div>
+
+    <button
+      type="button"
+      (click)="loadFeedback()"
+      [disabled]="loading()"
+      class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700"
+    >
+      {{ "admin.student_feedback.refresh" | translate }}
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div
+    class="space-y-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
+  >
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <!-- Search -->
+      <div>
+        <label
+          class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          {{ "admin.student_feedback.search_label" | translate }}
+        </label>
+
+        <input
+          type="text"
+          [ngModel]="searchTerm()"
+          (ngModelChange)="onSearchChange($event)"
+          [placeholder]="
+            'admin.student_feedback.search_placeholder' | translate
+          "
+          class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 outline-none transition focus:border-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+        />
+      </div>
+
+      <!-- Type Filter -->
+      <div>
+        <label
+          class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          {{ "admin.student_feedback.type_filter" | translate }}
+        </label>
+
+        <app-select
+          class="block w-full"
+          size="sm"
+          [options]="typeOptions"
+          [translateLabels]="true"
+          [ngModel]="typeFilter()"
+          (ngModelChange)="onTypeChange($event)"
+        />
+      </div>
+
+      <!-- Status Filter -->
+      <div>
+        <label
+          class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          {{ "admin.student_feedback.status_filter" | translate }}
+        </label>
+
+        <app-select
+          class="block w-full"
+          size="sm"
+          [options]="statusOptions"
+          [translateLabels]="true"
+          [ngModel]="statusFilter()"
+          (ngModelChange)="onStatusChange($event)"
+        />
+      </div>
+    </div>
+
+    <div class="flex justify-end">
+      <button
+        type="button"
+        (click)="resetFilters()"
+        class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+      >
+        {{ "admin.student_feedback.reset_filters" | translate }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div
+      class="rounded-xl border border-gray-200 bg-white py-12 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+    >
+      {{ "admin.student_feedback.loading" | translate }}
+    </div>
+  }
+
+  <!-- Error -->
+  @if (error()) {
+    <div
+      class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300"
+    >
+      {{ error() | translate }}
+
+      <button
+        type="button"
+        (click)="loadFeedback()"
+        class="ms-2 font-semibold underline"
+      >
+        {{ "admin.student_feedback.try_again" | translate }}
+      </button>
+    </div>
+  }
+
+  <!-- Feedback Table -->
+  @if (!loading() && !error()) {
+    <div
+      class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
+    >
+      <div
+        class="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-700"
+      >
+        <h2 class="font-bold text-gray-900 dark:text-white">
+          {{ "admin.student_feedback.messages" | translate }}
+        </h2>
+
+        <span class="text-sm text-gray-500 dark:text-gray-400">
+          {{ pagination()?.total ?? 0 }}
+          {{ "admin.student_feedback.results" | translate }}
+        </span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-center text-sm">
+          <thead
+            class="bg-gray-50 text-xs text-gray-500 dark:bg-gray-900 dark:text-gray-400"
+          >
+            <tr>
+              <th class="whitespace-nowrap px-5 py-4">
+                {{ "admin.student_feedback.student" | translate }}
+              </th>
+
+              <th class="whitespace-nowrap px-5 py-4">
+                {{ "admin.student_feedback.subject" | translate }}
+              </th>
+
+              <th class="whitespace-nowrap px-5 py-4">
+                {{ "admin.student_feedback.type" | translate }}
+              </th>
+
+              <th class="whitespace-nowrap px-5 py-4">
+                {{ "admin.student_feedback.status" | translate }}
+              </th>
+
+              <th class="whitespace-nowrap px-5 py-4">
+                {{ "admin.student_feedback.date" | translate }}
+              </th>
+
+              <th class="whitespace-nowrap px-5 py-4">
+                {{ "admin.student_feedback.actions" | translate }}
+              </th>
+            </tr>
+          </thead>
+
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+            @for (item of feedbackItems(); track item.id) {
+              <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                <td class="whitespace-nowrap px-5 py-4">
+                  <p class="font-medium text-gray-900 dark:text-white">
+                    {{ item.student?.name ?? "—" }}
+                  </p>
+
+                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {{ item.student?.email }}
+                  </p>
+                </td>
+
+                <td class="max-w-xs px-5 py-4">
+                  <p class="truncate font-medium text-gray-900 dark:text-white">
+                    {{ item.subject }}
+                  </p>
+
+                  <p
+                    class="mt-1 truncate text-xs text-gray-500 dark:text-gray-400"
+                  >
+                    {{ item.message }}
+                  </p>
+                </td>
+
+                <td
+                  class="whitespace-nowrap px-5 py-4 text-gray-600 dark:text-gray-300"
+                >
+                  {{ "admin.student_feedback.types." + item.type | translate }}
+                </td>
+
+                <td class="whitespace-nowrap px-5 py-4">
+                  <span
+                    class="inline-flex rounded-full px-3 py-1 text-xs font-semibold"
+                    [class.bg-blue-100]="item.status === 'new'"
+                    [class.text-blue-700]="item.status === 'new'"
+                    [class.bg-yellow-100]="item.status === 'in_review'"
+                    [class.text-yellow-700]="item.status === 'in_review'"
+                    [class.bg-green-100]="item.status === 'resolved'"
+                    [class.text-green-700]="item.status === 'resolved'"
+                    [class.bg-red-100]="item.status === 'rejected'"
+                    [class.text-red-700]="item.status === 'rejected'"
+                  >
+                    {{
+                      "admin.student_feedback.statuses." + item.status
+                        | translate
+                    }}
+                  </span>
+                </td>
+
+                <td
+                  class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400"
+                >
+                  {{ item.created_at | date: "dd MMM yyyy" }}
+                </td>
+
+                <td class="whitespace-nowrap px-5 py-4">
+                  <button
+                    type="button"
+                    (click)="openDetails(item)"
+                    class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+                  >
+                    {{ "admin.student_feedback.view_details" | translate }}
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td
+                  colspan="6"
+                  class="px-5 py-12 text-center text-gray-500 dark:text-gray-400"
+                >
+                  {{ "admin.student_feedback.empty" | translate }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      @if ((pagination()?.last_page ?? 1) > 1) {
+        <div
+          class="flex items-center justify-between border-t border-gray-200 px-5 py-4 dark:border-gray-700"
+        >
+          <span class="text-sm text-gray-500 dark:text-gray-400">
+            {{ "admin.student_feedback.page" | translate }}
+            {{ pagination()?.current_page }}
+            {{ "admin.student_feedback.of" | translate }}
+            {{ pagination()?.last_page }}
+          </span>
+
+          <div class="flex gap-2">
+            <button
+              type="button"
+              (click)="changePage(currentPage() - 1)"
+              [disabled]="currentPage() === 1"
+              class="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+            >
+              {{ "admin.student_feedback.previous" | translate }}
+            </button>
+
+            <button
+              type="button"
+              (click)="changePage(currentPage() + 1)"
+              [disabled]="currentPage() === (pagination()?.last_page ?? 1)"
+              class="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+            >
+              {{ "admin.student_feedback.next" | translate }}
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Details Modal -->
+@if (selectedFeedback(); as feedback) {
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+    (click)="closeDetails()"
+  >
+    <section
+      class="feedback-modal max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-800"
+      role="dialog"
+      aria-modal="true"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Modal Header -->
+      <div class="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white">
+            {{ "admin.student_feedback.details_title" | translate }}
+          </h2>
+
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            #{{ feedback.id }} ·
+            {{ feedback.created_at | date: "dd MMM yyyy, h:mm a" }}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          (click)="closeDetails()"
+          class="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 dark:hover:bg-gray-700"
+          [attr.aria-label]="'common.close' | translate"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- Student Information -->
+      <div class="mb-5 rounded-xl bg-gray-50 p-4 dark:bg-gray-900">
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+          {{ "admin.student_feedback.details.student_information" | translate }}
+        </p>
+
+        <p class="mt-1 font-semibold text-gray-900 dark:text-white">
+          {{ feedback.student?.name ?? "—" }}
+        </p>
+
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          {{ feedback.student?.email }}
+        </p>
+      </div>
+
+      <!-- Message -->
+      <div class="space-y-4">
+        <div class="flex flex-wrap gap-2">
+          <span
+            class="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700"
+          >
+            {{ "admin.student_feedback.types." + feedback.type | translate }}
+          </span>
+
+          <span
+            class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+          >
+            {{
+              "admin.student_feedback.statuses." + feedback.status | translate
+            }}
+          </span>
+        </div>
+
+        <div>
+          <h3 class="font-bold text-gray-900 dark:text-white">
+            {{ feedback.subject }}
+          </h3>
+
+          <p
+            class="mt-2 whitespace-pre-wrap text-sm leading-7 text-gray-600 dark:text-gray-300"
+          >
+            {{ feedback.message }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Status -->
+      <div class="mt-6 border-t border-gray-200 pt-5 dark:border-gray-700">
+        <label
+          class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300"
+        >
+          {{ "admin.student_feedback.change_status" | translate }}
+        </label>
+
+        <select
+          [ngModel]="feedback.status"
+          (ngModelChange)="updateStatus($event)"
+          [disabled]="isUpdatingStatus()"
+          class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+        >
+          <option value="new">
+            {{ "admin.student_feedback.statuses.new" | translate }}
+          </option>
+
+          <option value="in_review">
+            {{ "admin.student_feedback.statuses.in_review" | translate }}
+          </option>
+
+          <option value="resolved">
+            {{ "admin.student_feedback.statuses.resolved" | translate }}
+          </option>
+
+          <option value="rejected">
+            {{ "admin.student_feedback.statuses.rejected" | translate }}
+          </option>
+        </select>
+
+        @if (isUpdatingStatus()) {
+          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            {{ "common.saving" | translate }}
+          </p>
+        }
+      </div>
+
+      <!-- Action Error -->
+      @if (actionError()) {
+        <div
+          class="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300"
+        >
+          {{ actionError() | translate }}
+        </div>
+      }
+
+      <!-- Existing Reply -->
+      @if (feedback.admin_reply) {
+        <div
+          class="mt-6 rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-900 dark:bg-green-950/30"
+        >
+          <p class="text-sm font-bold text-green-800 dark:text-green-300">
+            {{ "admin.student_feedback.existing_reply" | translate }}
+          </p>
+
+          <p
+            class="mt-2 whitespace-pre-wrap text-sm leading-7 text-gray-700 dark:text-gray-300"
+          >
+            {{ feedback.admin_reply }}
+          </p>
+
+          @if (feedback.replied_at) {
+            <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+              {{ feedback.replied_at | date: "dd MMM yyyy, h:mm a" }}
+            </p>
+          }
+        </div>
+      } @else {
+        <!-- Reply Form -->
+        <div class="mt-6 border-t border-gray-200 pt-5 dark:border-gray-700">
+          <label
+            class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300"
+          >
+            {{ "admin.student_feedback.reply_label" | translate }}
+          </label>
+
+          <textarea
+            rows="4"
+            [ngModel]="replyText()"
+            (ngModelChange)="replyText.set($event)"
+            [placeholder]="
+              'admin.student_feedback.reply_placeholder' | translate
+            "
+            [disabled]="isReplying()"
+            class="w-full resize-y rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none focus:border-blue-500 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+          ></textarea>
+
+          <div class="mt-3 flex justify-end">
+            <button
+              type="button"
+              (click)="submitReply()"
+              [disabled]="!replyText().trim() || isReplying()"
+              class="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              @if (isReplying()) {
+                {{ "common.saving" | translate }}
+              } @else {
+                {{ "admin.student_feedback.send_reply" | translate }}
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Modal Footer -->
+      <div class="mt-6 flex justify-end">
+        <button
+          type="button"
+          (click)="closeDetails()"
+          class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+        >
+          {{ "common.close" | translate }}
+        </button>
+      </div>
+    </section>
+  </div>
+}

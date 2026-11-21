@@ -66,10 +66,6 @@ class User extends Authenticatable
             ->exists();
     }
 
-
-
-
-
     public function enrollments(): HasMany
     {
         return $this->hasMany(Enrollment::class, 'student_id');
@@ -219,5 +215,15 @@ class User extends Authenticatable
     public function recordedPayments(): HasMany
     {
         return $this->hasMany(Payment::class, 'recorded_by');
+    }
+
+    public function studentFeedback(): HasMany
+    {
+        return $this->hasMany(StudentFeedback::class, 'student_id');
+    }
+
+    public function repliedFeedback(): HasMany
+    {
+        return $this->hasMany(StudentFeedback::class, 'replied_by');
     }
 }

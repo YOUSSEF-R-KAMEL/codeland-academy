@@ -1,4 +1,11 @@
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -32,21 +39,78 @@ export class AttendanceManagementComponent implements OnInit {
   private groupId = 0;
   private sessionId = 0;
 
+  readonly presentCount = computed(
+    () =>
+      this.students().filter((student) => {
+        const check = student.checks.find(
+          (item) => item.check_number === this.selectedCheck(),
+        );
+
+        return check?.is_recorded && check.is_present === true;
+      }).length,
+  );
+
+  readonly absentCount = computed(
+    () =>
+      this.students().filter((student) => {
+        const check = student.checks.find(
+          (item) => item.check_number === this.selectedCheck(),
+        );
+
+        return check?.is_recorded && check.is_present === false;
+      }).length,
+  );
+
+  readonly unmarkedCount = computed(
+    () =>
+      this.students().filter((student) => {
+        const check = student.checks.find(
+          (item) => item.check_number === this.selectedCheck(),
+        );
+
+        return !check?.is_recorded || check.is_present === null;
+      }).length,
+  );
+
+  private calculateFinalStatus(
+    checks: AttendanceStudent['checks'],
+  ): AttendanceStudent['final_status'] {
+    if (checks.some((check) => check.is_present === true)) {
+      return 'present';
+    }
+
+    const allChecksRecorded = [1, 2, 3].every((number) =>
+      checks.some(
+        (check) => check.check_number === number && check.is_recorded,
+      ),
+    );
+
+    return allChecksRecorded ? 'absent' : 'pending';
+  }
+
   ngOnInit(): void {
     this.groupId = Number(this.route.snapshot.paramMap.get('groupId'));
     this.sessionId = Number(this.route.snapshot.paramMap.get('classSessionId'));
 
     if (!this.groupId || !this.sessionId) {
-      this.errorMessage.set('attendance.invalid_route');
+      this.errorMessage.set('admin.attendance.invalid_route');
       return;
     }
 
     this.loadAttendance();
   }
 
-  loadAttendance(): void {
+  loadAttendance(preserveSuccess = false): void {
+    if (this.loading() || this.saving()) {
+      return;
+    }
+
     this.loading.set(true);
     this.errorMessage.set('');
+
+    if (!preserveSuccess) {
+      this.successMessage.set('');
+    }
 
     this.attendanceService
       .getSessionAttendance(this.groupId, this.sessionId)
@@ -58,54 +122,86 @@ export class AttendanceManagementComponent implements OnInit {
           this.loading.set(false);
         },
         error: () => {
-          this.errorMessage.set('attendance.load_error');
+          this.errorMessage.set('admin.attendance.load_error');
+          this.successMessage.set('');
           this.loading.set(false);
         },
       });
   }
 
+  retryLoading(): void {
+    this.loadAttendance();
+  }
+
   selectCheck(checkNumber: number): void {
+    if (this.saving() || this.loading()) {
+      return;
+    }
+
+    if (![1, 2, 3].includes(checkNumber)) {
+      return;
+    }
+
     this.selectedCheck.set(checkNumber);
     this.successMessage.set('');
     this.errorMessage.set('');
   }
 
   updateStudentAttendance(studentId: number, isPresent: boolean): void {
+    if (this.saving() || this.loading()) {
+      return;
+    }
+
     this.students.update((students) =>
       students.map((student) => {
         if (student.student_id !== studentId) {
           return student;
         }
 
+        const updatedChecks = student.checks.map((check) =>
+          check.check_number === this.selectedCheck()
+            ? {
+                ...check,
+                is_present: isPresent,
+                is_recorded: true,
+              }
+            : check,
+        );
+
         return {
           ...student,
-          checks: student.checks.map((check) =>
-            check.check_number === this.selectedCheck()
-              ? {
-                  ...check,
-                  is_present: isPresent,
-                  is_recorded: true,
-                }
-              : check,
-          ),
+          checks: updatedChecks,
+          final_status: this.calculateFinalStatus(updatedChecks),
         };
       }),
     );
+
+    this.errorMessage.set('');
+    this.successMessage.set('');
   }
 
   saveAttendance(): void {
+    if (this.saving() || this.loading()) {
+      return;
+    }
+
     const students = this.students();
+
+    if (students.length === 0) {
+      return;
+    }
 
     const hasUnmarkedStudents = students.some((student) => {
       const check = student.checks.find(
         (item) => item.check_number === this.selectedCheck(),
       );
 
-      return !check?.is_recorded;
+      return !check?.is_recorded || check.is_present === null;
     });
 
     if (hasUnmarkedStudents) {
-      this.errorMessage.set('attendance.mark_all_students');
+      this.errorMessage.set('admin.attendance.mark_all_students');
+      this.successMessage.set('');
       return;
     }
 
@@ -132,12 +228,13 @@ export class AttendanceManagementComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          this.successMessage.set('attendance.save_success');
           this.saving.set(false);
-          this.loadAttendance();
+          this.successMessage.set('admin.attendance.save_success');
+
+          this.loadAttendance(true);
         },
         error: () => {
-          this.errorMessage.set('attendance.save_error');
+          this.errorMessage.set('admin.attendance.save_error');
           this.saving.set(false);
         },
       });

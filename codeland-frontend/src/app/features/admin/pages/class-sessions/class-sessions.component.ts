@@ -1,21 +1,32 @@
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { TranslatePipe } from '@ngx-translate/core';
-
 import { ClassSessionsService } from '../../services/class-sessions.service';
 import {
   ClassSession,
   ClassSessionPayload,
-  ClassSessionsApiResponse,
+  ClassSessionStatus,
 } from '../../models/class-session.model';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import Swal from 'sweetalert2';
+import {
+  SelectComponent,
+  SelectOption,
+} from '../../../../shared/components/select.component';
 
 @Component({
   selector: 'app-class-sessions',
   standalone: true,
-  imports: [FormsModule, DatePipe, TranslatePipe],
+  imports: [FormsModule, DatePipe, TranslatePipe, SelectComponent],
   templateUrl: './class-sessions.component.html',
 })
 export class ClassSessionsComponent implements OnInit {
@@ -23,6 +34,7 @@ export class ClassSessionsComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translate = inject(TranslateService);
 
   readonly sessions = signal<ClassSession[]>([]);
   readonly loading = signal(false);
@@ -32,6 +44,50 @@ export class ClassSessionsComponent implements OnInit {
   readonly showForm = signal(false);
   readonly editingSessionId = signal<number | null>(null);
   readonly deletingSessionId = signal<number | null>(null);
+
+  // Frontend search and filters
+  readonly searchTerm = signal('');
+  readonly statusFilter = signal<ClassSessionStatus | 'all'>('all');
+  readonly sortOrder = signal<'asc' | 'desc'>('asc');
+  readonly statusOptions: SelectOption[] = [
+    { value: 'all', label: 'admin.class_sessions.all_statuses' },
+    { value: 'scheduled', label: 'admin.class_sessions.statuses.scheduled' },
+    { value: 'completed', label: 'admin.class_sessions.statuses.completed' },
+    { value: 'cancelled', label: 'admin.class_sessions.statuses.cancelled' },
+  ];
+  readonly sortOptions: SelectOption[] = [
+    { value: 'asc', label: 'admin.class_sessions.oldest_first' },
+    { value: 'desc', label: 'admin.class_sessions.newest_first' },
+  ];
+  readonly filteredSessions = computed(() => {
+    const search = this.searchTerm().trim().toLowerCase();
+    const status = this.statusFilter();
+    const sortOrder = this.sortOrder();
+
+    return [...this.sessions()]
+      .filter((session) => {
+        const matchesSearch =
+          !search ||
+          session.title.toLowerCase().includes(search) ||
+          (session.notes ?? '').toLowerCase().includes(search);
+
+        const matchesStatus = status === 'all' || session.status === status;
+
+        return matchesSearch && matchesStatus;
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.starts_at).getTime();
+        const dateB = new Date(b.starts_at).getTime();
+
+        return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+      });
+  });
+
+  readonly totalSessions = computed(() => this.sessions().length);
+
+  readonly filteredSessionsCount = computed(
+    () => this.filteredSessions().length,
+  );
 
   groupId = 0;
 
@@ -143,11 +199,13 @@ export class ClassSessionsComponent implements OnInit {
     request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.saving.set(false);
+
         this.successMessage.set(
           sessionId
             ? 'class_sessions.update_success'
             : 'class_sessions.create_success',
         );
+
         this.closeForm();
         this.loadSessions();
       },
@@ -159,27 +217,59 @@ export class ClassSessionsComponent implements OnInit {
   }
 
   deleteSession(session: ClassSession): void {
-    if (!confirm('Are you sure you want to delete this session?')) {
-      return;
-    }
+    Swal.fire({
+      title: this.translate.instant('common.confirm_delete_title'),
+      text: this.translate.instant('class_sessions.delete_confirmation'),
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: this.translate.instant('common.delete'),
+      cancelButtonText: this.translate.instant('common.cancel'),
+      reverseButtons: true,
+    }).then((result) => {
+      if (!result.isConfirmed) return;
 
-    this.deletingSessionId.set(session.id);
-    this.errorMessage.set('');
+      this.deletingSessionId.set(session.id);
+      this.errorMessage.set('');
 
-    this.service
-      .deleteSession(this.groupId, session.id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          this.deletingSessionId.set(null);
-          this.successMessage.set('class_sessions.delete_success');
-          this.loadSessions();
-        },
-        error: () => {
-          this.deletingSessionId.set(null);
-          this.errorMessage.set('class_sessions.delete_error');
-        },
-      });
+      this.service
+        .deleteSession(this.groupId, session.id)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: () => {
+            this.deletingSessionId.set(null);
+            this.successMessage.set('class_sessions.delete_success');
+
+            this.loadSessions();
+
+            Swal.fire({
+              title: this.translate.instant('common.success'),
+              text: this.translate.instant('class_sessions.delete_success'),
+              icon: 'success',
+              confirmButtonColor: '#2563eb',
+            });
+          },
+          error: (error) => {
+            this.deletingSessionId.set(null);
+
+            const message = error.error?.message;
+
+            if (message?.includes('related academic records')) {
+              this.errorMessage.set('groups.delete_has_academic_records');
+            } else {
+              this.errorMessage.set('class_sessions.delete_error');
+            }
+
+            Swal.fire({
+              title: this.translate.instant('common.error'),
+              text: this.translate.instant(this.errorMessage()),
+              icon: 'error',
+              confirmButtonColor: '#2563eb',
+            });
+          },
+        });
+    });
   }
 
   openAttendance(session: ClassSession): void {

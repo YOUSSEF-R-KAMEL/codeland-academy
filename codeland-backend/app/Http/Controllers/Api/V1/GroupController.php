@@ -67,26 +67,33 @@ class GroupController extends Controller
         ]);
     }
 
+
     public function destroy(
         Course $course,
         Group $group
     ): JsonResponse {
         abort_unless($group->course_id === $course->id, 404);
 
-        $hasRelatedRecords =
-            $group->enrollments()->withTrashed()->exists()
-            || $group->sessions()->withTrashed()->exists()
-            || $group->instructors()->exists()
-            || $group->studentProjects()->exists()
-            || $group->announcements()->withTrashed()->exists()
-            || $group->studentEvaluations()->exists()
-            || $group->studentQuestions()->exists()
-            || $group->projects()->exists();
+        $relatedRecords = [
+            'enrollments' => $group->enrollments()->withTrashed()->exists(),
+            'sessions' => $group->sessions()->exists(),
+            'instructors' => $group->instructors()->exists(),
+            'student_projects' => $group->studentProjects()->exists(),
+            'announcements' => $group->announcements()->withTrashed()->exists(),
+            'student_evaluations' => $group->studentEvaluations()->exists(),
+            'student_questions' => $group->studentQuestions()->exists(),
+            'projects' => $group->projects()->exists(),
+        ];
 
-        if ($hasRelatedRecords) {
+        $existingRecords = array_keys(
+            array_filter($relatedRecords)
+        );
+
+        if (!empty($existingRecords)) {
             return response()->json([
                 'success' => false,
                 'message' => 'This group cannot be deleted because it has related academic records.',
+                'related_records' => $existingRecords,
             ], 422);
         }
 
@@ -97,4 +104,5 @@ class GroupController extends Controller
             'message' => 'Group deleted successfully.',
         ]);
     }
+
 }

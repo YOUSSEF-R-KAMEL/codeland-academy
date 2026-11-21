@@ -1,0 +1,434 @@
+<div class="space-y-6">
+  <!-- Page Header -->
+  <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+        {{ "admin.evaluations.title" | translate }}
+      </h1>
+
+      <p class="mt-1 text-sm text-gray-500 dark:text-white">
+        {{ "admin.evaluations.subtitle" | translate }}
+      </p>
+    </div>
+
+    <button
+      type="button"
+      (click)="
+        loadStatistics();
+        selectedTab() === 'courses'
+          ? loadEvaluations()
+          : loadInstructorFeedback()
+      "
+      class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700"
+    >
+      {{ "admin.evaluations.refresh" | translate }}
+    </button>
+  </div>
+
+  <!-- Statistics -->
+  @if (statistics(); as stats) {
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div
+        class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+      >
+        <p class="text-sm text-gray-500 dark:text-white">
+          {{ "admin.evaluations.total_evaluations" | translate }}
+        </p>
+
+        <p class="mt-3 text-3xl font-bold text-gray-900 dark:text-white">
+          {{ stats.total_evaluations }}
+        </p>
+      </div>
+
+      <div
+        class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+      >
+        <p class="text-sm text-gray-500 dark:text-white">
+          {{ "admin.evaluations.average_course_rating" | translate }}
+        </p>
+
+        <p class="mt-3 text-3xl font-bold text-gray-900 dark:text-white">
+          {{ stats.average_course_rating }}
+          <span class="text-lg text-yellow-500">★</span>
+        </p>
+      </div>
+
+      <div
+        class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+      >
+        <p class="text-sm text-gray-500 dark:text-white">
+          {{ "admin.evaluations.average_instructor_rating" | translate }}
+        </p>
+
+        <p class="mt-3 text-3xl font-bold text-gray-900 dark:text-white">
+          {{ stats.average_instructor_rating }}
+          <span class="text-lg text-yellow-500">★</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Rating Distribution -->
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div
+        class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+      >
+        <h2 class="mb-5 font-bold text-gray-900 dark:text-white">
+          {{ "admin.evaluations.course_distribution" | translate }}
+        </h2>
+
+        @for (rating of [5, 4, 3, 2, 1]; track rating) {
+          <div class="mb-3 flex items-center gap-3">
+            <span
+              class="w-10 text-sm font-medium text-gray-600 dark:text-gray-300"
+            >
+              {{ rating }} ★
+            </span>
+
+            <div
+              class="h-2 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700"
+            >
+              <div
+                class="h-full rounded-full bg-yellow-400"
+                [style.width.%]="
+                  getRatingPercentage(stats.course_rating_distribution, rating)
+                "
+              ></div>
+            </div>
+
+            <span class="w-8 text-end text-sm text-gray-500 dark:text-white">
+              {{ getRatingCount(stats.course_rating_distribution, rating) }}
+            </span>
+          </div>
+        }
+      </div>
+
+      <div
+        class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+      >
+        <h2 class="mb-5 font-bold text-gray-900 dark:text-white">
+          {{ "admin.evaluations.instructor_distribution" | translate }}
+        </h2>
+
+        @for (rating of [5, 4, 3, 2, 1]; track rating) {
+          <div class="mb-3 flex items-center gap-3">
+            <span
+              class="w-10 text-sm font-medium text-gray-600 dark:text-gray-300"
+            >
+              {{ rating }} ★
+            </span>
+
+            <div
+              class="h-2 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700"
+            >
+              <div
+                class="h-full rounded-full bg-blue-500"
+                [style.width.%]="
+                  getRatingPercentage(
+                    stats.instructor_rating_distribution,
+                    rating
+                  )
+                "
+              ></div>
+            </div>
+
+            <span class="w-8 text-end text-sm text-gray-500 dark:text-white">
+              {{ getRatingCount(stats.instructor_rating_distribution, rating) }}
+            </span>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Tabs -->
+  <div class="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+    <button
+      type="button"
+      (click)="setTab('courses')"
+      class="border-b-2 px-4 py-3 text-sm font-semibold transition"
+      [class.border-blue-600]="selectedTab() === 'courses'"
+      [class.text-blue-600]="selectedTab() === 'courses'"
+      [class.border-transparent]="selectedTab() !== 'courses'"
+      [class.text-white]="selectedTab() !== 'courses'"
+    >
+      {{ "admin.evaluations.course_evaluations" | translate }}
+    </button>
+
+    <button
+      type="button"
+      (click)="setTab('instructors')"
+      class="border-b-2 px-4 py-3 text-sm font-semibold transition"
+      [class.border-blue-600]="selectedTab() === 'instructors'"
+      [class.text-blue-600]="selectedTab() === 'instructors'"
+      [class.border-transparent]="selectedTab() !== 'instructors'"
+      [class.text-white]="selectedTab() !== 'instructors'"
+    >
+      {{ "admin.evaluations.instructor_feedback" | translate }}
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div
+    class="space-y-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
+  >
+    <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <!-- Search -->
+      <div>
+        <label
+          class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          {{ "admin.evaluations.search_label" | translate }}
+        </label>
+
+        <input
+          type="text"
+          [ngModel]="searchTerm()"
+          (ngModelChange)="onSearchChange($event)"
+          [placeholder]="'admin.evaluations.search' | translate"
+          class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+        />
+      </div>
+
+      <!-- Rating Filter -->
+      <div>
+        <label
+          class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          {{ "admin.evaluations.rating_filter" | translate }}
+        </label>
+
+        <app-select
+          class="block w-full"
+          size="sm"
+          [options]="ratingOptions"
+          [translateLabels]="true"
+          [ngModel]="ratingFilter()"
+          (ngModelChange)="onRatingChange($event)"
+        />
+      </div>
+
+      <!-- Sorting -->
+      <div>
+        <label
+          class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          {{ "admin.evaluations.sort_by" | translate }}
+        </label>
+
+        <app-select
+          class="block w-full"
+          size="sm"
+          [options]="sortOptions"
+          [translateLabels]="true"
+          [ngModel]="sortBy()"
+          (ngModelChange)="onSortChange($event)"
+        />
+      </div>
+    </div>
+
+    <!-- Reset Filters -->
+    <div class="flex justify-end">
+      <button
+        type="button"
+        (click)="resetFilters()"
+        class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+      >
+        {{ "admin.evaluations.reset_filters" | translate }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div
+      class="rounded-xl border border-gray-200 bg-white py-12 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+    >
+      {{ "admin.evaluations.loading" | translate }}
+    </div>
+  }
+  <!-- Error -->
+  @if (error()) {
+    <div
+      class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300"
+    >
+      {{ error() | translate }}
+
+      <button
+        type="button"
+        (click)="
+          selectedTab() === 'courses'
+            ? loadEvaluations()
+            : loadInstructorFeedback()
+        "
+        class="ms-2 font-semibold underline"
+      >
+        {{ "admin.evaluations.try_again" | translate }}
+      </button>
+    </div>
+  }
+
+  <!-- Evaluations Table -->
+  @if (!loading() && !error()) {
+    <div
+      class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
+    >
+      <div
+        class="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-700"
+      >
+        <h2 class="font-bold text-gray-900 dark:text-white">
+          @if (selectedTab() === "courses") {
+            {{ "admin.evaluations.course_evaluations" | translate }}
+          } @else {
+            {{ "admin.evaluations.instructor_feedback" | translate }}
+          }
+        </h2>
+
+        <span class="text-sm text-gray-500 dark:text-white">
+          {{ totalEvaluations() }}
+          {{ "admin.evaluations.results" | translate }}
+        </span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-start text-sm">
+          <thead
+            class="bg-gray-50 text-xs text-gray-500 dark:bg-gray-900 dark:text-white"
+          >
+            <tr>
+              <th class="whitespace-nowrap px-5 py-4">
+                {{ "admin.evaluations.student" | translate }}
+              </th>
+
+              <th class="whitespace-nowrap px-5 py-4">
+                {{ "admin.evaluations.course" | translate }}
+              </th>
+
+              <th class="whitespace-nowrap px-5 py-4">
+                {{ "admin.evaluations.instructor" | translate }}
+              </th>
+
+              <th class="whitespace-nowrap px-5 py-4">
+                {{ "admin.evaluations.course_rating" | translate }}
+              </th>
+
+              <th class="whitespace-nowrap px-5 py-4">
+                {{ "admin.evaluations.instructor_rating" | translate }}
+              </th>
+
+              <th class="whitespace-nowrap px-5 py-4">
+                {{ "admin.evaluations.date" | translate }}
+              </th>
+            </tr>
+          </thead>
+
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+            @for (evaluation of paginatedEvaluations(); track evaluation.id) {
+              <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                <td
+                  class="whitespace-nowrap px-5 py-4 font-medium text-gray-900 dark:text-white"
+                >
+                  {{ evaluation.student.name }}
+                </td>
+
+                <td
+                  class="whitespace-nowrap px-5 py-4 text-gray-600 dark:text-gray-300"
+                >
+                  {{ evaluation.course.title }}
+                </td>
+
+                <td
+                  class="whitespace-nowrap px-5 py-4 text-gray-600 dark:text-gray-300"
+                >
+                  {{ evaluation.instructor.name }}
+                </td>
+
+                <td class="whitespace-nowrap px-5 py-4">
+                  <span class="text-yellow-500">
+                    {{ getRatingStars(evaluation.course_rating) }}
+                  </span>
+                  <span class="ms-1 text-xs text-gray-500">
+                    {{ evaluation.course_rating }}/5
+                  </span>
+
+                  @if (evaluation.course_comment) {
+                    <p
+                      class="mt-1 max-w-xs whitespace-normal text-xs text-gray-500 dark:text-white"
+                    >
+                      {{ evaluation.course_comment }}
+                    </p>
+                  }
+                </td>
+
+                <td class="whitespace-nowrap px-5 py-4">
+                  <span class="text-yellow-500">
+                    {{ getRatingStars(evaluation.instructor_rating) }}
+                  </span>
+                  <span class="ms-1 text-xs text-gray-500">
+                    {{ evaluation.instructor_rating }}/5
+                  </span>
+
+                  @if (evaluation.instructor_comment) {
+                    <p
+                      class="mt-1 max-w-xs whitespace-normal text-xs text-gray-500 dark:text-white"
+                    >
+                      {{ evaluation.instructor_comment }}
+                    </p>
+                  }
+                </td>
+
+                <td
+                  class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-white"
+                >
+                  {{ evaluation.created_at | date: "dd MMM yyyy" }}
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td
+                  colspan="6"
+                  class="px-5 py-12 text-center text-gray-500 dark:text-white"
+                >
+                  {{ "admin.evaluations.no_evaluations" | translate }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      @if (lastPage() > 1) {
+        <div
+          class="flex items-center justify-between border-t border-gray-200 px-5 py-4 dark:border-gray-700"
+        >
+          <span class="text-sm text-gray-500 dark:text-white">
+            {{ "admin.evaluations.page" | translate }}
+            {{ currentPage() }}
+            {{ "admin.evaluations.of" | translate }}
+            {{ lastPage() }}
+          </span>
+
+          <div class="flex gap-2">
+            <button
+              type="button"
+              (click)="changePage(currentPage() - 1)"
+              [disabled]="currentPage() === 1"
+              class="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+            >
+              {{ "admin.evaluations.previous" | translate }}
+            </button>
+
+            <button
+              type="button"
+              (click)="changePage(currentPage() + 1)"
+              [disabled]="currentPage() === lastPage()"
+              class="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+            >
+              {{ "admin.evaluations.next" | translate }}
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

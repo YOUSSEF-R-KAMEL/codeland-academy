@@ -124,6 +124,8 @@ class AttendanceService
                 ->map(fn($id) => (int) $id)
                 ->all();
 
+            $submittedStudentIds = [];
+
             foreach ($students as $studentData) {
                 if (
                     !isset($studentData['student_id']) ||
@@ -134,14 +136,28 @@ class AttendanceService
                     );
                 }
 
-                $studentId = (int) $studentData['student_id'];
+                $submittedStudentIds[] = (int) $studentData['student_id'];
+            }
 
-                if (!in_array($studentId, $activeStudentIds, true)) {
-                    throw new \InvalidArgumentException(
-                        "Student {$studentId} is not actively enrolled in this group."
-                    );
-                }
+            if (
+                count($submittedStudentIds) !==
+                count(array_unique($submittedStudentIds))
+            ) {
+                throw new \InvalidArgumentException(
+                    'Duplicate students are not allowed.'
+                );
+            }
 
+            sort($activeStudentIds);
+            sort($submittedStudentIds);
+
+            if ($activeStudentIds !== $submittedStudentIds) {
+                throw new \InvalidArgumentException(
+                    'Attendance must be submitted for all actively enrolled students.'
+                );
+            }
+
+            foreach ($students as $studentData) {
                 if (
                     !in_array(
                         $studentData['is_present'],
@@ -153,6 +169,8 @@ class AttendanceService
                         'Attendance status must be a valid boolean value.'
                     );
                 }
+
+                $studentId = (int) $studentData['student_id'];
 
                 $lockedSession->attendances()->updateOrCreate(
                     [

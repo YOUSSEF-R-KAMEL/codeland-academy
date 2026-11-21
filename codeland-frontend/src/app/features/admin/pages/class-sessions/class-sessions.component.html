@@ -1,24 +1,26 @@
-<div class="space-y-6">
+<div class="modal-enter space-y-6">
+  <!-- Header -->
   <div class="flex flex-wrap items-center justify-between gap-4">
     <div>
       <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-        {{ "class_sessions.title" | translate }}
+        {{ "admin.class_sessions.title" | translate }}
       </h1>
 
       <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-        {{ "class_sessions.description" | translate }}
+        {{ "admin.class_sessions.description" | translate }}
       </p>
     </div>
 
     <button
       type="button"
       (click)="openCreateForm()"
-      class="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+      class="rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-300 ease-out hover:bg-blue-700 hover:shadow-lg active:scale-95"
     >
-      {{ "class_sessions.create" | translate }}
+      {{ "admin.class_sessions.create" | translate }}
     </button>
   </div>
 
+  <!-- Success Message -->
   @if (successMessage()) {
     <div
       class="rounded-lg bg-green-50 p-3 text-sm text-green-700 dark:bg-green-900/20 dark:text-green-400"
@@ -27,6 +29,7 @@
     </div>
   }
 
+  <!-- Error Message -->
   @if (errorMessage()) {
     <div
       class="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400"
@@ -35,6 +38,82 @@
     </div>
   }
 
+  <!-- Search and Filters -->
+  <div
+    class="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 md:grid-cols-3"
+  >
+    <!-- Search -->
+    <div>
+      <label
+        class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+      >
+        {{ "admin.class_sessions.search" | translate }}
+      </label>
+
+      <input
+        type="text"
+        [ngModel]="searchTerm()"
+        (ngModelChange)="searchTerm.set($event)"
+        name="sessionSearch"
+        [placeholder]="'admin.class_sessions.search_placeholder' | translate"
+        class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-primary-500 dark:border-gray-600 dark:text-white"
+      />
+    </div>
+
+    <!-- Status Filter -->
+    <div>
+      <label
+        class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+      >
+        {{ "admin.class_sessions.status_filter" | translate }}
+      </label>
+
+      <app-select
+        class="block w-full"
+        size="sm"
+        [options]="statusOptions"
+        [translateLabels]="true"
+        [ngModel]="statusFilter()"
+        (ngModelChange)="statusFilter.set($event)"
+      />
+    </div>
+
+    <!-- Sorting -->
+    <div>
+      <label
+        class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+      >
+        {{ "admin.class_sessions.sort_by_date" | translate }}
+      </label>
+
+      <app-select
+        class="block w-full"
+        size="sm"
+        [options]="sortOptions"
+        [translateLabels]="true"
+        [ngModel]="sortOrder()"
+        (ngModelChange)="sortOrder.set($event)"
+      />
+    </div>
+  </div>
+
+  <!-- Results Count -->
+  @if (!loading()) {
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        {{ "admin.class_sessions.showing" | translate }}
+        <span class="font-semibold text-gray-900 dark:text-white">
+          {{ filteredSessionsCount() }}
+        </span>
+        /
+        <span class="font-semibold text-gray-900 dark:text-white">
+          {{ totalSessions() }}
+        </span>
+      </p>
+    </div>
+  }
+
+  <!-- Loading -->
   @if (loading()) {
     <div class="py-12 text-center text-gray-500">
       {{ "common.loading" | translate }}
@@ -45,78 +124,118 @@
         class="rounded-xl border border-dashed border-gray-300 p-10 text-center dark:border-gray-700"
       >
         <p class="text-gray-500 dark:text-gray-400">
-          {{ "class_sessions.empty" | translate }}
+          {{ "admin.class_sessions.empty" | translate }}
+        </p>
+      </div>
+    } @else if (filteredSessions().length === 0) {
+      <div
+        class="rounded-xl border border-dashed border-gray-300 p-10 text-center dark:border-gray-700"
+      >
+        <p class="text-gray-500 dark:text-gray-400">
+          {{ "admin.class_sessions.no_matching_sessions" | translate }}
         </p>
       </div>
     } @else {
+      <!-- Sessions Table -->
       <div
         class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
       >
         <div class="overflow-x-auto">
-          <table class="w-full text-start text-sm">
+          <table class="w-full text-center text-sm">
             <thead
               class="bg-gray-50 text-gray-600 dark:bg-gray-900/50 dark:text-gray-300"
             >
               <tr>
                 <th class="px-5 py-3">
-                  {{ "class_sessions.session" | translate }}
+                  {{ "admin.class_sessions.session" | translate }}
                 </th>
+
                 <th class="px-5 py-3">
-                  {{ "class_sessions.starts_at" | translate }}
+                  {{ "admin.class_sessions.starts_at" | translate }}
                 </th>
+
                 <th class="px-5 py-3">
-                  {{ "class_sessions.ends_at" | translate }}
+                  {{ "admin.class_sessions.ends_at" | translate }}
                 </th>
+
                 <th class="px-5 py-3">
-                  {{ "class_sessions.status" | translate }}
+                  {{ "admin.class_sessions.status" | translate }}
                 </th>
+
                 <th class="px-5 py-3">
-                  {{ "class_sessions.actions" | translate }}
+                  {{ "admin.class_sessions.actions" | translate }}
                 </th>
               </tr>
             </thead>
 
             <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-              @for (session of sessions(); track session.id) {
+              @for (session of filteredSessions(); track session.id) {
                 <tr>
                   <td
                     class="px-5 py-4 font-medium text-gray-900 dark:text-white"
                   >
                     {{ session.title }}
+
+                    @if (session.notes) {
+                      <p
+                        class="mt-1 max-w-xs truncate text-xs font-normal text-gray-400"
+                      >
+                        {{ session.notes }}
+                      </p>
+                    }
                   </td>
 
                   <td class="px-5 py-4 text-gray-600 dark:text-gray-300">
-                    {{ session.starts_at | date: "medium" }}
+                    <div class="flex flex-col gap-1">
+                      <span>
+                        {{ session.starts_at | date: "dd/MM/yyyy" }}
+                      </span>
+
+                      <span class="text-xs text-gray-400">
+                        {{ session.starts_at | date: "shortTime" }}
+                      </span>
+                    </div>
                   </td>
 
                   <td class="px-5 py-4 text-gray-600 dark:text-gray-300">
-                    {{ session.ends_at | date: "shortTime" }}
+                    <div class="flex flex-col gap-1">
+                      <span>
+                        {{ session.ends_at | date: "dd/MM/yyyy" }}
+                      </span>
+
+                      <span class="text-xs text-gray-400">
+                        {{ session.ends_at | date: "shortTime" }}
+                      </span>
+                    </div>
                   </td>
 
                   <td class="px-5 py-4">
                     <span
-                      class="rounded-full bg-blue-50 px-3 py-1 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                      class="rounded-full bg-blue-100 px-3 py-1 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
                     >
                       {{
-                        "class_sessions.statuses." + session.status | translate
+                        "admin.class_sessions.statuses." + session.status
+                          | translate
                       }}
                     </span>
                   </td>
 
                   <td class="px-5 py-4">
-                    <div class="flex flex-wrap items-center gap-2">
+                    <div
+                      class="flex flex-wrap items-center justify-center gap-2"
+                    >
                       <button
                         type="button"
                         (click)="openAttendance(session)"
-                        class="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-300"
+                        class="rounded-lg bg-indigo-100 px-3 py-1.5 text-xs font-medium text-indigo-700 transition-colors duration-200 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-300 dark:hover:bg-indigo-900/50"
                       >
-                        {{ "class_sessions.attendance" | translate }}
+                        {{ "admin.class_sessions.attendance" | translate }}
                       </button>
 
                       <button
                         type="button"
                         (click)="openEditForm(session)"
-                        class="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200"
+                        class="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors duration-200 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
                       >
                         {{ "common.edit" | translate }}
                       </button>
@@ -125,7 +244,7 @@
                         type="button"
                         (click)="deleteSession(session)"
                         [disabled]="deletingSessionId() === session.id"
-                        class="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50 dark:bg-red-900/20 dark:text-red-400"
+                        class="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors duration-200 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40"
                       >
                         {{ "common.delete" | translate }}
                       </button>
@@ -140,6 +259,7 @@
     }
   }
 
+  <!-- Create / Edit Modal -->
   @if (showForm()) {
     <div
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
@@ -160,41 +280,45 @@
           <button
             type="button"
             (click)="closeForm()"
-            class="text-gray-500 hover:text-gray-800 dark:hover:text-white"
+            class="rounded-lg px-2 py-1 text-gray-500 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-800 dark:hover:bg-gray-700 dark:hover:text-white"
           >
             ✕
           </button>
         </div>
 
         <form (ngSubmit)="saveSession()" class="space-y-4">
+          <!-- Session Title -->
           <div>
             <label
               class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
             >
-              {{ "class_sessions.session_title" | translate }}
+              {{ "admin.class_sessions.session_title" | translate }}
             </label>
+
             <input
               type="text"
               name="title"
               [(ngModel)]="form.title"
               required
-              class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-gray-900 outline-none focus:border-primary-500 dark:border-gray-600 dark:text-white"
+              class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-gray-900 outline-none transition-colors duration-200 focus:border-primary-500 dark:border-gray-600 dark:text-white"
             />
           </div>
 
+          <!-- Dates -->
           <div class="grid gap-4 sm:grid-cols-2">
             <div>
               <label
                 class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
               >
-                {{ "class_sessions.starts_at" | translate }}
+                {{ "admin.class_sessions.starts_at" | translate }}
               </label>
+
               <input
                 type="datetime-local"
                 name="starts_at"
                 [(ngModel)]="form.starts_at"
                 required
-                class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-gray-900 outline-none focus:border-primary-500 dark:border-gray-600 dark:text-white"
+                class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-gray-900 outline-none transition-colors duration-200 focus:border-primary-500 dark:border-gray-600 dark:text-white"
               />
             </div>
 
@@ -202,52 +326,58 @@
               <label
                 class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
               >
-                {{ "class_sessions.ends_at" | translate }}
+                {{ "admin.class_sessions.ends_at" | translate }}
               </label>
+
               <input
                 type="datetime-local"
                 name="ends_at"
                 [(ngModel)]="form.ends_at"
                 required
-                class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-gray-900 outline-none focus:border-primary-500 dark:border-gray-600 dark:text-white"
+                class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-gray-900 outline-none transition-colors duration-200 focus:border-primary-500 dark:border-gray-600 dark:text-white"
               />
             </div>
           </div>
 
+          <!-- Meeting URL -->
           <div>
             <label
               class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
             >
-              {{ "class_sessions.meeting_url" | translate }}
+              {{ "admin.class_sessions.meeting_url" | translate }}
             </label>
+
             <input
               type="url"
               name="meeting_url"
               [(ngModel)]="form.meeting_url"
               placeholder="https://meet.google.com/..."
-              class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-gray-900 outline-none focus:border-primary-500 dark:border-gray-600 dark:text-white"
+              class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-gray-900 outline-none transition-colors duration-200 focus:border-primary-500 dark:border-gray-600 dark:text-white"
             />
           </div>
 
+          <!-- Notes -->
           <div>
             <label
               class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
             >
-              {{ "class_sessions.notes" | translate }}
+              {{ "admin.class_sessions.notes" | translate }}
             </label>
+
             <textarea
               name="notes"
               [(ngModel)]="form.notes"
               rows="3"
-              class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-gray-900 outline-none focus:border-primary-500 dark:border-gray-600 dark:text-white"
+              class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-gray-900 outline-none transition-colors duration-200 focus:border-primary-500 dark:border-gray-600 dark:text-white"
             ></textarea>
           </div>
 
+          <!-- Actions -->
           <div class="flex justify-end gap-3 pt-3">
             <button
               type="button"
               (click)="closeForm()"
-              class="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 dark:border-gray-600 dark:text-gray-300"
+              class="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 transition-colors duration-200 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
             >
               {{ "common.cancel" | translate }}
             </button>
@@ -255,9 +385,12 @@
             <button
               type="submit"
               [disabled]="saving()"
-              class="rounded-lg bg-primary-600 px-5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+              class="rounded-lg bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 transition-colors duration-200 hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40"
             >
-              {{ (saving() ? "common.saving" : "class_sessions.save") | translate }}
+              {{
+                (saving() ? "common.saving" : "admin.class_sessions.save")
+                  | translate
+              }}
             </button>
           </div>
         </form>
